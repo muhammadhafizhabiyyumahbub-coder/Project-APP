@@ -158,6 +158,7 @@ Phase 1 started after explicit user approval. Current work is limited to applica
 - Error recovery: `ErrorBoundary` added around the application root with reload action and automated error-state coverage; eight Vitest tests pass.
 - Manual validation: browser load passed with no console errors; mobile menu opened and closed, theme toggled, and the browser returned no runtime errors. Native browser click refs were unreliable, so DOM interaction was used for these checks.
 - Phase 2 storage foundation started after explicit approval: Dexie schema, initialization helper, reset helper, persistence test, and transaction rollback test added.
+- Repository layer: product CRUD repository added with trust-boundary validation and automated CRUD/validation tests.
 - Database, financial engine, API, and business feature implementation: Not Started.
 
 ## 10. Completion Gate
