@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useProducts } from '../../src/hooks/useProducts.js';
 import { useCustomers } from '../../src/hooks/useCustomers.js';
 import { db, initializeDatabase } from '../../src/storage/database.js';
+import { listFeatures, saveFeature } from '../../src/storage/featuresRepository.js';
 import { getAccountBalance } from '../../src/financial/financialEngine.js';
 import { recordOperatingExpense, recordCapitalContribution, recordOwnerWithdrawal, createSale } from '../../src/financial/transactionEngine.js';
 
@@ -1158,14 +1159,16 @@ const App = () => {
       await removeCustomer(id);
     }
   };
-  const [features, setFeatures] = useState(() => {
-    try {
-      const savedFeatures = localStorage.getItem('umkm-features');
-      return savedFeatures ? JSON.parse(savedFeatures) : mockFeaturesData;
-    } catch (e) {
-      return mockFeaturesData;
-    }
-  });
+  const [features, setFeatures] = useState(mockFeaturesData);
+
+  useEffect(() => {
+    listFeatures().then(saved => {
+      if (saved.length) setFeatures(current => current.map(feature => ({
+        ...feature,
+        aktif: saved.find(item => item.featureId === feature.id)?.enabled ?? feature.aktif,
+      })));
+    }).catch(() => {});
+  }, []);
 
   // Initialize Theme based on localStorage or system pref safely
   useEffect(() => {
@@ -1196,11 +1199,8 @@ const App = () => {
   const toggleFeature = (id) => {
     setFeatures(currentFeatures => {
       const nextFeatures = currentFeatures.map(f => f.id === id ? { ...f, aktif: !f.aktif } : f);
-      try {
-        localStorage.setItem('umkm-features', JSON.stringify(nextFeatures));
-      } catch (e) {
-        console.warn('LocalStorage not accessible for feature settings.');
-      }
+      const feature = nextFeatures.find(item => item.id === id);
+      saveFeature(id, feature.aktif).catch(() => {});
       return nextFeatures;
     });
   };
