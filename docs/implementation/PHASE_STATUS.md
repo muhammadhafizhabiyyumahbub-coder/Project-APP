@@ -13,9 +13,9 @@
 | Product Version | V1 draft |
 | Development Model | Offline-First, Local-First |
 | Current Phase | Phase 3, Core Financial Engine |
-| Current Status | In Progress |
+| Current Status | Completed |
 | Approved Phase | Phase 3 |
-| Next Action | Complete transaction posting rules, HPP calculation, UI wiring |
+| Next Action | Phase 4+ deferred pending explicit user approval |
 | Release Status | Not Released |
 
 Status reflects repository evidence. Documentation is not implementation evidence.
@@ -86,14 +86,14 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 
 | Test Category | Result | Evidence |
 |---|---|---|
-| Unit | Pass | 32 pass (8 files) |
-| Integration | Pass | 5 financial engine tests added |
+| Unit | Pass | 41 pass (10 files) |
+| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock tests added |
 | E2E | Not Run | No runnable app |
 | Build | Pass | `npm run build` passes |
-| Regression | Pass | 32 tests |
+| Regression | Pass | 41 tests |
 | Manual application verification | Not Run | No runnable app |
 | Offline behavior | Pass | 7 storage test files |
-| Data integrity | Pass | Journal balancing, rollback verified |
+| Data integrity | Pass | Journal balancing, rollback, atomic sale+stock verified |
 | Documentation consistency | Reviewed | Current review reports |
 | Git diff check | Run after edits | Result to be recorded before commit, if authorized |
 
@@ -123,7 +123,7 @@ No recommendation is treated as approved.
 | 0 | 2026-11-10 | — | Review Required |
 | 1 | — | — | Not Started |
 | 2 | 2026-11-10 | 2026-11-10 | Completed |
-| 3 | 2026-11-10 | — | In Progress |
+| 3 | 2026-11-10 | 2026-11-10 | Completed |
 | 4 | — | — | Not Started |
 | 5 | — | — | Not Started |
 | 6 | — | — | Not Started |
@@ -176,6 +176,14 @@ Phase 1 started after explicit user approval. Current work is limited to applica
 - Financial implementation: Chart of accounts, journal repository, balanced-entry validation, posting mechanism, idempotency prevention, account balance engine, trial balance, and reversal logic added.
 - Phase 3 foundation validation: 5 financial engine tests pass (capital contribution, idempotency, unbalanced rejection, double-post prevention, rollback).
 - Overall suite: 8 test files, 32 tests pass; production build passes.
+- Transaction rules: `createSale()` and `recordPayment()` post atomically with journal + audit trail + idempotency.
+- Sale posting: cash → 1010, receivable → 1100, revenue → 4000; payment posting: cash → 1010, receivable credit → 1100.
+- Validation: overpayment and payment on completed sale rejected.
+- Inventory engine: `recordStockIn()` computes weighted average HPP; `reserveSaleStock()` deducts stock and rejects negative stock.
+- Sale now deducts stock and posts HPP journal (Dr 5100 / Cr 1200) in the same atomic transaction as revenue.
+- Chart of accounts extended with 5100 HPP; account balances no longer clamped at zero.
+- Phase 3 financial engine validation: 10 test files, 41 tests pass; production build passes.
+- Phase 3 completed on 2026-11-10: full financial engine foundation delivered; transaction posting, HPP journal, and inventory deduction integrated atomically; UI layer deferred to Phase 4+ approval.
 
 ## 11. Completion Gate
 

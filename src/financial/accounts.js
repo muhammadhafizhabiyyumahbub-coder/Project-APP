@@ -23,6 +23,10 @@ export const CHART_OF_ACCOUNTS = {
   // Assets (1000-1999)
   '1010': { code: '1010', name: 'Kas', type: ACCOUNT_TYPE.ASSET },
   '1020': { code: '1020', name: 'Bank', type: ACCOUNT_TYPE.ASSET },
+  '1100': { code: '1100', name: 'Piutang Usaha', type: ACCOUNT_TYPE.ASSET },
+
+  // Liabilities (2000-2999)
+  '2100': { code: '2100', name: 'Uang Muka Pelanggan', type: ACCOUNT_TYPE.LIABILITY },
 
   // Equity (3000-3999)
   '3000': { code: '3000', name: 'Modal Pemilik', type: ACCOUNT_TYPE.EQUITY },
@@ -33,6 +37,8 @@ export const CHART_OF_ACCOUNTS = {
 
   // Expenses (5000-5999)
   '5000': { code: '5000', name: 'Beban Operasional', type: ACCOUNT_TYPE.EXPENSE },
+  '5100': { code: '5100', name: 'Harga Pokok Penjualan', type: ACCOUNT_TYPE.EXPENSE },
+  '1200': { code: '1200', name: 'Persediaan Barang', type: ACCOUNT_TYPE.ASSET },
 };
 
 export function getAccount(code) {

@@ -13,7 +13,7 @@ describe('local database foundation', () => {
 
     expect(DATABASE_VERSION).toBe(2);
     expect(db.tables.map((table) => table.name)).toEqual([
-      'businesses', 'products', 'customers', 'settings', 'features', 'journals', 'auditTrail',
+      'businesses', 'products', 'customers', 'settings', 'features', 'journals', 'auditTrail', 'sales', 'payments', 'inventoryMovements',
     ]);
   });
 
@@ -44,6 +44,9 @@ describe('local database foundation', () => {
       features: 'featureId',
       journals: 'id, status, idempotencyKey, reference',
       auditTrail: 'id, entityId, action, reference',
+      sales: 'id, saleNumber, customerId, journalId',
+      payments: 'id, paymentNumber, saleId, journalId',
+      inventoryMovements: 'id, productId, saleId, transactionDate',
     });
     await secondConnection.open();
 

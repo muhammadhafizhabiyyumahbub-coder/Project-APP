@@ -35,7 +35,7 @@ export async function getAccountBalance(accountCode) {
     }
   });
 
-  return Math.max(0, balance); // No negative balances by default
+  return balance;
 }
 
 // Get balances for multiple accounts
