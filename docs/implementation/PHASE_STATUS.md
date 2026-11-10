@@ -151,6 +151,7 @@ Phase 1 started after explicit user approval. Current work is limited to applica
 - Authorization: User explicitly approved starting Phase 1.
 - Current status: In Progress
 - Build validation: Passed with `npm run build`.
+- UI foundation validation: Product edit flow, notification action, modal Escape/close behavior, accessible labels, and feature-toggle persistence added and verified by code inspection.
 - Database, financial engine, API, and feature implementation: Not Started.
 
 ## 10. Completion Gate

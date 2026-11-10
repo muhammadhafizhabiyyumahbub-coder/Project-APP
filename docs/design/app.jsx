@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // ==========================================
 // 1. ICONS (SVG Mocks for zero-dependency)
@@ -174,13 +174,29 @@ const SearchInput = ({ placeholder = "Cari...", value, onChange }) => (
 );
 
 const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-md" }) => {
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const previousFocus = document.activeElement;
+    dialogRef.current?.focus();
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      previousFocus?.focus?.();
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-      <div className={`bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full ${maxWidth} overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1} className={`bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full ${maxWidth} overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]`}>
         <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{title}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+          <h3 id="modal-title" className="text-lg font-semibold text-slate-900 dark:text-slate-50">{title}</h3>
+          <button type="button" onClick={onClose} aria-label="Tutup dialog" className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
             <Icon name="X" />
           </button>
         </div>
@@ -589,6 +605,7 @@ const PenjualanScreen = ({ products }) => {
 // --- PRODUK SCREEN ---
 const ProdukScreen = ({ products, setProducts }) => {
   const [isModalOpen, setModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   
   const [formData, setFormData] = useState({
@@ -597,18 +614,29 @@ const ProdukScreen = ({ products, setProducts }) => {
 
   const filteredProducts = products.filter(p => p.nama.toLowerCase().includes(searchQuery.toLowerCase()));
 
+  const resetForm = () => {
+    setFormData({ nama: '', sku: '', kategori: '', stok: 0, harga: 0, hpp: 0 });
+    setEditingProduct(null);
+  };
+
+  const openProductForm = (product = null) => {
+    setEditingProduct(product);
+    setFormData(product ? { ...product } : { nama: '', sku: '', kategori: '', stok: 0, harga: 0, hpp: 0 });
+    setModalOpen(true);
+  };
+
   const handleSave = (e) => {
     e.preventDefault();
-    const newProduct = {
-      id: `P${Date.now()}`,
+    const product = {
+      id: editingProduct?.id || `P${Date.now()}`,
       ...formData,
       stok: parseInt(formData.stok) || 0,
       harga: parseInt(formData.harga) || 0,
       hpp: parseInt(formData.hpp) || 0,
     };
-    setProducts([...products, newProduct]);
+    setProducts(editingProduct ? products.map(item => item.id === product.id ? product : item) : [...products, product]);
     setModalOpen(false);
-    setFormData({ nama: '', sku: '', kategori: '', stok: 0, harga: 0, hpp: 0 }); // reset
+    resetForm();
   };
 
   return (
@@ -618,7 +646,7 @@ const ProdukScreen = ({ products, setProducts }) => {
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Master Produk</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Kelola daftar barang, harga jual, dan persediaan.</p>
         </div>
-        <Button icon="Plus" onClick={() => setModalOpen(true)}>Tambah Produk</Button>
+        <Button icon="Plus" onClick={() => openProductForm()}>Tambah Produk</Button>
       </div>
 
       <Card noPadding>
@@ -669,7 +697,7 @@ const ProdukScreen = ({ products, setProducts }) => {
                       )}
                     </td>
                     <td className="px-5 py-3 text-center">
-                      <Button variant="ghost" className="text-blue-600 dark:text-blue-400">Edit</Button>
+                      <Button variant="ghost" className="text-blue-600 dark:text-blue-400" onClick={() => openProductForm(p)}>Edit</Button>
                     </td>
                   </tr>
                 ))}
@@ -680,7 +708,7 @@ const ProdukScreen = ({ products, setProducts }) => {
       </Card>
 
       {/* Add Product Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title="Tambah Produk Baru">
+      <Modal isOpen={isModalOpen} onClose={() => { setModalOpen(false); resetForm(); }} title={editingProduct ? "Edit Produk" : "Tambah Produk Baru"}>
         <form onSubmit={handleSave} className="space-y-4">
           <Input label="Nama Produk" required placeholder="Cth: Kopi Kapal Api" value={formData.nama} onChange={e => setFormData({...formData, nama: e.target.value})} />
           <div className="grid grid-cols-2 gap-4">
@@ -784,7 +812,14 @@ const App = () => {
   
   // Data States
   const [products, setProducts] = useState(initialProduk);
-  const [features, setFeatures] = useState(mockFeaturesData);
+  const [features, setFeatures] = useState(() => {
+    try {
+      const savedFeatures = localStorage.getItem('umkm-features');
+      return savedFeatures ? JSON.parse(savedFeatures) : mockFeaturesData;
+    } catch (e) {
+      return mockFeaturesData;
+    }
+  });
 
   // Initialize Theme based on localStorage or system pref safely
   useEffect(() => {
@@ -813,7 +848,15 @@ const App = () => {
   };
 
   const toggleFeature = (id) => {
-    setFeatures(features.map(f => f.id === id ? { ...f, aktif: !f.aktif } : f));
+    setFeatures(currentFeatures => {
+      const nextFeatures = currentFeatures.map(f => f.id === id ? { ...f, aktif: !f.aktif } : f);
+      try {
+        localStorage.setItem('umkm-features', JSON.stringify(nextFeatures));
+      } catch (e) {
+        console.warn('LocalStorage not accessible for feature settings.');
+      }
+      return nextFeatures;
+    });
   };
 
   // Base Navigation Config
@@ -871,10 +914,10 @@ const App = () => {
             Manager
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={toggleTheme} className="p-2 text-slate-500 dark:text-slate-400 focus:outline-none">
+            <button type="button" onClick={toggleTheme} aria-label="Ganti tema" className="p-2 text-slate-500 dark:text-slate-400 focus:outline-none">
                <Icon name={isDark ? "Sun" : "Moon"} className="w-5 h-5" />
             </button>
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-600 dark:text-slate-300 focus:outline-none">
+            <button type="button" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label={isMobileMenuOpen ? 'Tutup menu' : 'Buka menu'} className="p-2 text-slate-600 dark:text-slate-300 focus:outline-none">
               <Icon name={isMobileMenuOpen ? "X" : "Menu"} className="w-6 h-6" />
             </button>
           </div>
@@ -963,7 +1006,7 @@ const App = () => {
              </div>
 
              <div className="flex items-center gap-2">
-               <button className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 relative focus:outline-none transition-colors">
+               <button type="button" aria-label="Buka notifikasi" onClick={() => window.alert('Belum ada notifikasi baru.')} className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 relative focus:outline-none transition-colors">
                  <Icon name="Bell" className="w-5 h-5" />
                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white dark:border-slate-900"></span>
                </button>
