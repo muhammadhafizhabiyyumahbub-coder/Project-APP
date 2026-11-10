@@ -13,7 +13,7 @@ describe('local database foundation', () => {
 
     expect(DATABASE_VERSION).toBe(1);
     expect(db.tables.map((table) => table.name)).toEqual([
-      'businesses', 'products', 'customers', 'settings', 'features',
+      'businesses', 'products', 'customers', 'settings', 'features', 'journals',
     ]);
   });
 
@@ -42,6 +42,7 @@ describe('local database foundation', () => {
       customers: 'id, nama',
       settings: 'id, key',
       features: 'featureId',
+      journals: 'id, status, idempotencyKey, reference',
     });
     await secondConnection.open();
 

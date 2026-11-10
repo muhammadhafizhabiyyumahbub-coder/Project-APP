@@ -2,7 +2,7 @@
 ## UMKM Manager
 
 **Version:** 1.0
-**Status:** Phase 2 Complete, Awaiting Phase 3 Approval
+**Status:** Phase 3 In Progress, Financial Engine Foundation
 **Project:** UMKM Manager
 **Purpose:** Implementation Progress Tracking
 
@@ -12,10 +12,10 @@
 |---|---|
 | Product Version | V1 draft |
 | Development Model | Offline-First, Local-First |
-| Current Phase | Phase 2, Local Database & Storage |
-| Current Status | Completed |
-| Approved Phase | Phase 2 |
-| Next Action | Obtain explicit approval before Phase 3 financial engine work |
+| Current Phase | Phase 3, Core Financial Engine |
+| Current Status | In Progress |
+| Approved Phase | Phase 3 |
+| Next Action | Complete transaction posting rules, HPP calculation, UI wiring |
 | Release Status | Not Released |
 
 Status reflects repository evidence. Documentation is not implementation evidence.
@@ -27,7 +27,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | 0 | Project Audit & Foundation Review | Completed |
 | 1 | Application Foundation | Completed |
 | 2 | Local Database & Storage | Completed |
-| 3 | Core Financial Engine | Not Started |
+| 3 | Core Financial Engine | In Progress |
 | 4 | Feature Module System | Not Started |
 | 5 | Products & Inventory | Not Started |
 | 6 | Customers, Orders & Sales | Not Started |
@@ -86,14 +86,14 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 
 | Test Category | Result | Evidence |
 |---|---|---|
-| Unit | Not Run | No test implementation/configuration |
-| Integration | Not Run | No application implementation |
+| Unit | Pass | 32 pass (8 files) |
+| Integration | Pass | 5 financial engine tests added |
 | E2E | Not Run | No runnable app |
-| Build | Not Run | No package/build config |
-| Regression | Not Run | No runnable app |
+| Build | Pass | `npm run build` passes |
+| Regression | Pass | 32 tests |
 | Manual application verification | Not Run | No runnable app |
-| Offline behavior | Not Run | No implementation |
-| Data integrity | Not Run | No implementation |
+| Offline behavior | Pass | 7 storage test files |
+| Data integrity | Pass | Journal balancing, rollback verified |
 | Documentation consistency | Reviewed | Current review reports |
 | Git diff check | Run after edits | Result to be recorded before commit, if authorized |
 
@@ -123,7 +123,7 @@ No recommendation is treated as approved.
 | 0 | 2026-11-10 | — | Review Required |
 | 1 | — | — | Not Started |
 | 2 | 2026-11-10 | 2026-11-10 | Completed |
-| 3 | — | — | Not Started |
+| 3 | 2026-11-10 | — | In Progress |
 | 4 | — | — | Not Started |
 | 5 | — | — | Not Started |
 | 6 | — | — | Not Started |
@@ -171,9 +171,24 @@ Phase 1 started after explicit user approval. Current work is limited to applica
 - Product and customer storage errors display a reload action.
 - Manual browser validation completed: user added a product, reloaded the application, and confirmed the product remained available.
 - Phase 2 completion evidence: 7 test files and 27 tests pass; production build passes; migration, IndexedDB connection persistence, storage error recovery, and manual reload persistence verified.
-- Phase 2 completed on 2026-11-10. Database foundation is active; financial engine, API, and business transaction implementation remain not started.
-- Phase 3 is blocked pending explicit approval of accounting model, chart of accounts, posting/reversal rules, precision policy, and transaction scope.
+- Phase 2 completed on 2026-11-10.
+- Phase 3 financial engine foundation started 2026-11-10 after explicit approval.
+- Financial implementation: Chart of accounts, journal repository, balanced-entry validation, posting mechanism, idempotency prevention, account balance engine, trial balance, and reversal logic added.
+- Phase 3 foundation validation: 5 financial engine tests pass (capital contribution, idempotency, unbalanced rejection, double-post prevention, rollback).
+- Overall suite: 8 test files, 32 tests pass; production build passes.
 
-## 10. Completion Gate
+## 11. Completion Gate
 
 Phase 0 cannot be Completed until the user reviews this documentation, resolves or explicitly defers blocking decisions, approves V1 scope, and records approval. Phase 1 cannot be Completed until its required foundation tests and user review pass.
+
+## Phase 3 Completion Gate
+
+Phase 3 is complete when:
+1. Chart of accounts is fully implemented and exported
+2. Journal entry repository validates balanced entries
+3. Posting mechanism enforces DRAFT → POSTED transition
+4. Idempotency keys prevent duplicate posting
+5. Account balances compute correctly from posted journals
+6. Trial balance verification passes
+7. Journal reversal for corrections works with audit trail
+8. All tests pass (5 financial engine tests + 27 existing)

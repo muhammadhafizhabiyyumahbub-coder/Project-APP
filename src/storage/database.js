@@ -11,6 +11,7 @@ db.version(DATABASE_VERSION).stores({
   customers: 'id, nama',
   settings: 'id, key',
   features: 'featureId',
+  journals: 'id, status, idempotencyKey, reference',
 });
 
 export async function initializeDatabase() {
