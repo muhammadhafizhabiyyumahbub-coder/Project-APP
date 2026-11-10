@@ -608,7 +608,7 @@ const PenjualanScreen = ({ products }) => {
 };
 
 // --- PRODUK SCREEN ---
-const ProdukScreen = ({ products, onSaveProduct }) => {
+const ProdukScreen = ({ products, onSaveProduct, onDeleteProduct }) => {
   const [isModalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -703,6 +703,7 @@ const ProdukScreen = ({ products, onSaveProduct }) => {
                     </td>
                     <td className="px-5 py-3 text-center">
                       <Button variant="ghost" className="text-blue-600 dark:text-blue-400" onClick={() => openProductForm(p)}>Edit</Button>
+                      <Button variant="ghost" className="text-rose-600 dark:text-rose-400 ml-2" onClick={() => onDeleteProduct(p.id)}>Hapus</Button>
                     </td>
                   </tr>
                 ))}
@@ -822,6 +823,7 @@ const App = () => {
     error: productsError,
     addProduct,
     updateProduct,
+    removeProduct,
   } = useProducts();
 
   const handleSaveProduct = async (product, editingProduct) => {
@@ -829,6 +831,12 @@ const App = () => {
       await updateProduct(product.id, product);
     } else {
       await addProduct(product);
+    }
+  };
+
+  const handleDeleteProduct = async (id) => {
+    if (confirm('Anda yakin ingin menghapus produk ini?')) {
+      await removeProduct(id);
     }
   };
   const [features, setFeatures] = useState(() => {
@@ -919,7 +927,7 @@ const App = () => {
           {productsLoading ? (
             <div className="p-6 text-sm text-slate-500">Memuat produk...</div>
           ) : (
-            <ProdukScreen products={products} onSaveProduct={handleSaveProduct} />
+            <ProdukScreen products={products} onSaveProduct={handleSaveProduct} onDeleteProduct={handleDeleteProduct} />
           )}
         </>
       );

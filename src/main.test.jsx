@@ -11,6 +11,7 @@ vi.mock('./hooks/useProducts.js', () => ({
     error: null,
     addProduct: vi.fn(),
     updateProduct: vi.fn(),
+    removeProduct: vi.fn(),
   }),
 }));
 
@@ -54,6 +55,17 @@ describe('application shell', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Simpan Produk' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('deletes an existing product after confirmation', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<App />);
+    await user.click(screen.getAllByRole('button', { name: /produk/i })[0]);
+
+    await user.click(screen.getByRole('button', { name: 'Hapus' }));
+
+    expect(confirmSpy).toHaveBeenCalledWith('Anda yakin ingin menghapus produk ini?');
   });
 
   it('closes product modal with Escape and restores focus', async () => {

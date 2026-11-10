@@ -163,7 +163,8 @@ Phase 1 started after explicit user approval. Current work is limited to applica
 - Product repository renamed to `productRepository` for explicit module ownership; database schema and reopen persistence tests expanded.
 - Product UI now reads and writes through `useProducts`, backed by IndexedDB; loading and storage-error states display on the product route.
 - Settings repository (key/value storage) and features repository (feature toggles) added with automated tests.
-- Current Phase 2 validation: 7 test files and 24 tests pass; production build passes.
+- Product UI now supports confirmed deletion through `useProducts`; delete interaction test added.
+- Current Phase 2 validation: 7 test files and 25 tests pass; production build passes.
 - Database, financial engine, API, and business feature implementation: Not Started.
 
 ## 10. Completion Gate
