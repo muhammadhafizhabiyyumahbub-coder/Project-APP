@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto';
+import Dexie from 'dexie';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DATABASE_VERSION, db, initializeDatabase, resetDatabase } from './database';
 
@@ -38,5 +39,23 @@ describe('local database foundation', () => {
     })).rejects.toThrow('rollback');
 
     await expect(db.products.get('P002')).resolves.toBeUndefined();
+  });
+
+  it('preserves existing records when schema version is bumped', async () => {
+    const v1 = new Dexie('umkm-manager-migration-test');
+    v1.version(1).stores({ products: 'id, nama' });
+    await v1.open();
+    await v1.products.put({ id: 'P001', nama: 'Produk Lama' });
+    v1.close();
+
+    const v2 = new Dexie('umkm-manager-migration-test');
+    v2.version(1).stores({ products: 'id, nama' });
+    v2.version(2).stores({ products: 'id, nama', customers: 'id, nama' }).upgrade(() => {});
+    await v2.open();
+
+    await expect(v2.products.get('P001')).resolves.toMatchObject({ nama: 'Produk Lama' });
+    expect(v2.customers).toBeDefined();
+
+    await v2.delete();
   });
 });
