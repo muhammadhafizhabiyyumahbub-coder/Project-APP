@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useProducts } from '../../src/hooks/useProducts.js';
 import { useCustomers } from '../../src/hooks/useCustomers.js';
+import { db } from '../../src/storage/database.js';
+import { getAccountBalance } from '../../src/financial/financialEngine.js';
 
 // ==========================================
 // 1. ICONS (SVG Mocks for zero-dependency)
@@ -884,6 +886,34 @@ const TambahFiturScreen = ({ features, toggleFeature }) => {
 };
 
 // --- GENERIC PLACEHOLDER SCREEN ---
+const FinancialScreen = () => {
+  const [data, setData] = useState({ balances: {}, journals: [] });
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all(['1010', '1100', '1200', '4000', '5100'].map(async code => [code, await getAccountBalance(code)]))
+      .then(async entries => {
+        const journals = await db.journals.orderBy('createdAt').reverse().limit(10).toArray();
+        if (active) setData({ balances: Object.fromEntries(entries), journals });
+      })
+      .catch(() => active && setError('Data keuangan gagal dimuat.'));
+    return () => { active = false; };
+  }, []);
+
+  const labels = { '1010': 'Kas', '1100': 'Piutang', '1200': 'Persediaan', '4000': 'Pendapatan', '5100': 'HPP' };
+  return (
+    <div className="space-y-6">
+      <div><h1 className="text-2xl font-semibold">Keuangan</h1><p className="mt-1 text-sm text-slate-500">Ringkasan saldo dari jurnal terposting.</p></div>
+      {error && <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {Object.entries(labels).map(([code, label]) => <div key={code} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-xl font-bold">{formatIDR(data.balances[code] || 0)}</p></div>)}
+      </div>
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h2 className="font-semibold">Jurnal Terbaru</h2>{data.journals.length === 0 ? <p className="mt-3 text-sm text-slate-500">Belum ada jurnal terposting.</p> : <div className="mt-3 space-y-2">{data.journals.map(journal => <div key={journal.id} className="border-b border-slate-100 py-2 text-sm dark:border-slate-800"><div className="flex justify-between"><span>{journal.journalNumber} · {journal.reference}</span><span>{journal.status}</span></div><div className="mt-1 text-xs text-slate-500">{journal.entries.map((entry, index) => <span key={`${journal.id}-${index}`} className="mr-3">{entry.accountCode}: D {formatIDR(entry.debit)} / K {formatIDR(entry.credit)}</span>)}</div></div>)}</div>}</section>
+    </div>
+  );
+};
+
 const PlaceholderScreen = ({ title, description }) => (
   <Card className="h-full flex items-center justify-center min-h-[60vh]">
     <EmptyState 
@@ -1067,7 +1097,7 @@ const App = () => {
         </>
       );
       case 'fitur': return <TambahFiturScreen features={features} toggleFeature={toggleFeature} />;
-      case 'keuangan': return <PlaceholderScreen title="Modul Keuangan" description="Pencatatan kas masuk/keluar operasional (Selain dari penjualan produk)." />;
+      case 'keuangan': return <FinancialScreen />;
       case 'persediaan': return <PlaceholderScreen title="Modul Persediaan (Inventory)" description="Riwayat pergerakan stok, stok opname, dan pembelian ke supplier." />;
       case 'pelanggan': return (
         <>

@@ -31,6 +31,15 @@ describe('application shell', () => {
     expect(screen.getByText('Mode Offline')).toBeInTheDocument();
   });
 
+  it('opens financial screen with journal summary', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getAllByRole('button', { name: /keuangan/i })[0]);
+
+    expect(screen.getByRole('heading', { name: 'Keuangan' })).toBeInTheDocument();
+    expect(screen.getByText('Belum ada jurnal terposting.')).toBeInTheDocument();
+  });
+
   it('opens product screen from navigation', async () => {
     const user = userEvent.setup();
     render(<App />);
