@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useProducts } from '../../src/hooks/useProducts.js';
+import { useCustomers } from '../../src/hooks/useCustomers.js';
 
 // ==========================================
 // 1. ICONS (SVG Mocks for zero-dependency)
@@ -736,6 +737,114 @@ const ProdukScreen = ({ products, onSaveProduct, onDeleteProduct }) => {
   );
 };
 
+// --- PELANGGAN SCREEN ---
+const PelangganScreen = ({ customers, onSaveCustomer, onDeleteCustomer }) => {
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const [formData, setFormData] = useState({
+    nama: '', nohp: '', email: '', alamat: ''
+  });
+
+  const filteredCustomers = customers.filter(c => 
+    c.nama.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (c.nohp && c.nohp.includes(searchQuery))
+  );
+
+  const resetForm = () => {
+    setFormData({ nama: '', nohp: '', email: '', alamat: '' });
+    setEditingCustomer(null);
+  };
+
+  const openCustomerForm = (customer = null) => {
+    setEditingCustomer(customer);
+    setFormData(customer ? { ...customer } : { nama: '', nohp: '', email: '', alamat: '' });
+    setModalOpen(true);
+  };
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    const customer = {
+      id: editingCustomer?.id || `C${Date.now()}`,
+      ...formData,
+    };
+    onSaveCustomer(customer, editingCustomer);
+    setModalOpen(false);
+    resetForm();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Database Pelanggan</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Kelola daftar pelanggan dan informasi kontak.</p>
+        </div>
+        <Button icon="Plus" onClick={() => openCustomerForm()}>Tambah Pelanggan</Button>
+      </div>
+
+      <Card noPadding>
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-4 justify-between bg-white dark:bg-slate-900 rounded-t-xl">
+          <div className="w-full sm:w-80">
+            <SearchInput 
+              placeholder="Cari nama atau No. HP..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+        
+        {filteredCustomers.length === 0 ? (
+           <EmptyState icon="Users" title="Tidak ada pelanggan" description="Data pelanggan kosong atau tidak ditemukan." />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left whitespace-nowrap">
+              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-xs">
+                <tr>
+                  <th className="px-5 py-3 font-medium">Nama Pelanggan</th>
+                  <th className="px-5 py-3 font-medium">No. HP</th>
+                  <th className="px-5 py-3 font-medium">Email</th>
+                  <th className="px-5 py-3 font-medium">Alamat</th>
+                  <th className="px-5 py-3 font-medium text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {filteredCustomers.map(c => (
+                  <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-5 py-3 font-medium text-slate-800 dark:text-slate-200">{c.nama}</td>
+                    <td className="px-5 py-3 text-slate-600 dark:text-slate-400">{c.nohp || '-'}</td>
+                    <td className="px-5 py-3 text-slate-600 dark:text-slate-400 text-xs">{c.email || '-'}</td>
+                    <td className="px-5 py-3 text-slate-600 dark:text-slate-400 text-xs">{c.alamat || '-'}</td>
+                    <td className="px-5 py-3 text-center">
+                      <Button variant="ghost" className="text-blue-600 dark:text-blue-400" onClick={() => openCustomerForm(c)}>Edit</Button>
+                      <Button variant="ghost" className="text-rose-600 dark:text-rose-400 ml-2" onClick={() => onDeleteCustomer(c.id)}>Hapus</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/* Add Customer Modal */}
+      <Modal isOpen={isModalOpen} onClose={() => { setModalOpen(false); resetForm(); }} title={editingCustomer ? "Edit Pelanggan" : "Tambah Pelanggan Baru"}>
+        <form onSubmit={handleSave} className="space-y-4">
+          <Input label="Nama Pelanggan" required placeholder="Cth: Ibu Siti" value={formData.nama} onChange={e => setFormData(current => ({...current, nama: e.target.value}))} />
+          <Input label="No. HP (Opsional)" placeholder="Cth: 081234567890" value={formData.nohp} onChange={e => setFormData(current => ({...current, nohp: e.target.value}))} />
+          <Input label="Email (Opsional)" type="email" placeholder="Cth: siti@email.com" value={formData.email} onChange={e => setFormData(current => ({...current, email: e.target.value}))} />
+          <Input label="Alamat (Opsional)" placeholder="Cth: Jl. Merdeka No. 123" value={formData.alamat} onChange={e => setFormData(current => ({...current, alamat: e.target.value}))} />
+          <div className="pt-4 flex justify-end gap-3">
+             <Button variant="secondary" onClick={() => setModalOpen(false)}>Batal</Button>
+             <Button variant="primary" type="submit">Simpan Pelanggan</Button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
 // --- TAMBAH FITUR SCREEN ---
 const TambahFiturScreen = ({ features, toggleFeature }) => {
   return (
@@ -826,6 +935,15 @@ const App = () => {
     removeProduct,
   } = useProducts();
 
+  const {
+    customers,
+    loading: customersLoading,
+    error: customersError,
+    addCustomer,
+    updateCustomer,
+    removeCustomer,
+  } = useCustomers();
+
   const handleSaveProduct = async (product, editingProduct) => {
     if (editingProduct) {
       await updateProduct(product.id, product);
@@ -837,6 +955,20 @@ const App = () => {
   const handleDeleteProduct = async (id) => {
     if (confirm('Anda yakin ingin menghapus produk ini?')) {
       await removeProduct(id);
+    }
+  };
+
+  const handleSaveCustomer = async (customer, editingCustomer) => {
+    if (editingCustomer) {
+      await updateCustomer(customer.id, customer);
+    } else {
+      await addCustomer(customer);
+    }
+  };
+
+  const handleDeleteCustomer = async (id) => {
+    if (confirm('Anda yakin ingin menghapus pelanggan ini?')) {
+      await removeCustomer(id);
     }
   };
   const [features, setFeatures] = useState(() => {
@@ -934,7 +1066,20 @@ const App = () => {
       case 'fitur': return <TambahFiturScreen features={features} toggleFeature={toggleFeature} />;
       case 'keuangan': return <PlaceholderScreen title="Modul Keuangan" description="Pencatatan kas masuk/keluar operasional (Selain dari penjualan produk)." />;
       case 'persediaan': return <PlaceholderScreen title="Modul Persediaan (Inventory)" description="Riwayat pergerakan stok, stok opname, dan pembelian ke supplier." />;
-      case 'pelanggan': return <PlaceholderScreen title="Database Pelanggan" description="Daftar kontak, riwayat transaksi, dan hutang/piutang per pelanggan." />;
+      case 'pelanggan': return (
+        <>
+          {customersError && (
+            <div role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
+              {customersError}
+            </div>
+          )}
+          {customersLoading ? (
+            <div className="p-6 text-sm text-slate-500">Memuat pelanggan...</div>
+          ) : (
+            <PelangganScreen customers={customers} onSaveCustomer={handleSaveCustomer} onDeleteCustomer={handleDeleteCustomer} />
+          )}
+        </>
+      );
       case 'pesanan': return <PlaceholderScreen title="Manajemen Pesanan" description="Pantau operasional pesanan (Menunggu diproses, Sedang dikemas, Selesai)." />;
       case 'piutang': return <PlaceholderScreen title="Buku Piutang & Utang" description="Kelola daftar piutang pelanggan dan hutang ke supplier." />;
       case 'laporan': return <PlaceholderScreen title="Laporan Bisnis" description="Laporan Laba Rugi sederhana, Arus Kas, dan Tren Penjualan." />;
