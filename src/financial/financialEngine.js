@@ -17,23 +17,21 @@ export async function getAccountBalance(accountCode) {
   let balance = 0;
 
   postedJournals.forEach(journal => {
-    const lineForAccount = journal.entries.find(
+    const linesForAccount = journal.entries.filter(
       line => line.accountCode === accountCode
     );
 
-    if (!lineForAccount) return;
+    if (linesForAccount.length === 0) return;
 
     const account = CHART_OF_ACCOUNTS[accountCode];
     const normalBalance = ACCOUNT_NORMAL_BALANCE[account.type];
+    const debit = linesForAccount.reduce((sum, line) => sum + (line.debit || 0), 0);
+    const credit = linesForAccount.reduce((sum, line) => sum + (line.credit || 0), 0);
 
-    // If account normally has debit balance (ASSET, EXPENSE):
-    // Debit increases, Credit decreases
     if (normalBalance === 'DEBIT') {
-      balance += (lineForAccount.debit || 0) - (lineForAccount.credit || 0);
+      balance += debit - credit;
     } else {
-      // If account normally has credit balance (LIABILITY, EQUITY, REVENUE):
-      // Credit increases, Debit decreases
-      balance += (lineForAccount.credit || 0) - (lineForAccount.debit || 0);
+      balance += credit - debit;
     }
   });
 

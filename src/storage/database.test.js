@@ -11,9 +11,9 @@ describe('local database foundation', () => {
   it('opens current schema and exposes expected tables', async () => {
     await initializeDatabase();
 
-    expect(DATABASE_VERSION).toBe(1);
+    expect(DATABASE_VERSION).toBe(2);
     expect(db.tables.map((table) => table.name)).toEqual([
-      'businesses', 'products', 'customers', 'settings', 'features', 'journals',
+      'businesses', 'products', 'customers', 'settings', 'features', 'journals', 'auditTrail',
     ]);
   });
 
@@ -43,6 +43,7 @@ describe('local database foundation', () => {
       settings: 'id, key',
       features: 'featureId',
       journals: 'id, status, idempotencyKey, reference',
+      auditTrail: 'id, entityId, action, reference',
     });
     await secondConnection.open();
 

@@ -51,6 +51,23 @@ describe('Financial Engine - Phase 3', () => {
     expect(trialBalance.totalCredit).toBe(100000);
   });
 
+  it('sums every line for an account in one journal', async () => {
+    const journal = await createJournal({
+      journalNumber: 'JE-MULTI-LINE',
+      transactionDate: '2026-11-10',
+      description: 'Multiple cash lines',
+      entries: [
+        { accountCode: '1010', debit: 40000, credit: 0 },
+        { accountCode: '1010', debit: 60000, credit: 0 },
+        { accountCode: '3000', debit: 0, credit: 100000 },
+      ],
+    });
+
+    await postJournal(journal.id);
+
+    await expect(getAccountBalance('1010')).resolves.toBe(100000);
+  });
+
   it('prevents duplicate posting with same idempotency key', async () => {
     const journalData = {
       journalNumber: 'JE-002',
@@ -80,6 +97,27 @@ describe('Financial Engine - Phase 3', () => {
     // Verify balance only increased once
     const kasBalance = await getAccountBalance('1010');
     expect(kasBalance).toBe(50000);
+  });
+
+  it('writes an audit record when a journal is posted', async () => {
+    const journal = await createJournal({
+      journalNumber: 'JE-AUDIT',
+      transactionDate: '2026-11-10',
+      description: 'Audit posting',
+      entries: [
+        { accountCode: '1010', debit: 10000, credit: 0 },
+        { accountCode: '3000', debit: 0, credit: 10000 },
+      ],
+    });
+
+    await postJournal(journal.id);
+
+    await expect(db.auditTrail.get(`AUDIT-${journal.id}-POSTED`)).resolves.toMatchObject({
+      entityId: journal.id,
+      action: 'POSTED',
+      before: { status: 'DRAFT' },
+      after: { status: 'POSTED' },
+    });
   });
 
   it('rejects unbalanced journal entry', async () => {
@@ -126,7 +164,7 @@ describe('Financial Engine - Phase 3', () => {
 
     // Use Dexie transaction to test rollback
     await expect(
-      db.transaction('rw', db.journals, async () => {
+      db.transaction('rw', db.journals, db.auditTrail, async () => {
         await postJournal(journal.id);
         throw new Error('Simulated failure');
       })

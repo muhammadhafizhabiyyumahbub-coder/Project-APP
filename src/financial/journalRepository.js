@@ -90,7 +90,18 @@ export async function postJournal(journalId) {
   journal.status = 'POSTED';
   journal.postedAt = new Date().toISOString();
 
-  await db.journals.put(journal);
+  await db.transaction('rw', db.journals, db.auditTrail, async () => {
+    await db.journals.put(journal);
+    await db.auditTrail.put({
+      id: `AUDIT-${journal.id}-POSTED`,
+      entityId: journal.id,
+      action: 'POSTED',
+      reference: journal.reference,
+      createdAt: journal.postedAt,
+      before: { status: 'DRAFT' },
+      after: { status: 'POSTED' },
+    });
+  });
   return journal;
 }
 
@@ -135,6 +146,10 @@ export async function reverseJournal(journalId, reason = '') {
     debit: line.credit,
     credit: line.debit,
   }));
+
+  if (original.status !== 'POSTED') {
+    throw new Error(`Journal ${journalId} belum diposting.`);
+  }
 
   const reverseJournal = {
     id: `J${Date.now()}`,
