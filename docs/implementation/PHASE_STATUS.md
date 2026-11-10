@@ -157,7 +157,8 @@ Phase 1 started after explicit user approval. Current work is limited to applica
 - Interaction validation: seven Vitest interaction tests pass for navigation, product editing, modal Escape/focus restoration, feature toggle persistence, theme persistence, and notification feedback.
 - Error recovery: `ErrorBoundary` added around the application root with reload action and automated error-state coverage; eight Vitest tests pass.
 - Manual validation: browser load passed with no console errors; mobile menu opened and closed, theme toggled, and the browser returned no runtime errors. Native browser click refs were unreliable, so DOM interaction was used for these checks.
-- Database, financial engine, API, and feature implementation: Not Started.
+- Phase 2 storage foundation started after explicit approval: Dexie schema, initialization helper, reset helper, persistence test, and transaction rollback test added.
+- Database, financial engine, API, and business feature implementation: Not Started.
 
 ## 10. Completion Gate
 
