@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import App from '../docs/design/app.jsx';
+import ErrorBoundary from './ErrorBoundary';
 
 beforeEach(() => {
   localStorage.clear();
@@ -76,6 +77,19 @@ describe('application shell', () => {
     await user.click(themeButton);
 
     expect(localStorage.getItem('umkm-theme')).toBe('dark');
+  });
+
+  it('renders an error recovery state when child throws', () => {
+    const Broken = () => {
+      throw new Error('test failure');
+    };
+
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(<ErrorBoundary><Broken /></ErrorBoundary>);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Aplikasi mengalami kendala');
+    expect(screen.getByRole('button', { name: 'Muat ulang aplikasi' })).toBeInTheDocument();
+    error.mockRestore();
   });
 
   it('shows notification action feedback', async () => {
