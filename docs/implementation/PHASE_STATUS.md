@@ -161,6 +161,7 @@ Phase 1 started after explicit user approval. Current work is limited to applica
 - Repository layer: product CRUD repository added with trust-boundary validation and automated CRUD/validation tests.
 - Customer CRUD repository and `useCustomers` hook added with validation and automated repository tests.
 - Product repository renamed to `productRepository` for explicit module ownership; database schema and reopen persistence tests expanded.
+- Product UI now reads and writes through `useProducts`, backed by IndexedDB; loading and storage-error states display on the product route.
 - Current Phase 2 validation: 5 test files and 18 tests pass; production build passes.
 - Database, financial engine, API, and business feature implementation: Not Started.
 

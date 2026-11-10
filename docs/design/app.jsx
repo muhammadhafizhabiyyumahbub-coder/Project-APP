@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useProducts } from '../../src/hooks/useProducts.js';
 
 // ==========================================
 // 1. ICONS (SVG Mocks for zero-dependency)
@@ -607,7 +608,7 @@ const PenjualanScreen = ({ products }) => {
 };
 
 // --- PRODUK SCREEN ---
-const ProdukScreen = ({ products, setProducts }) => {
+const ProdukScreen = ({ products, onSaveProduct }) => {
   const [isModalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -638,7 +639,7 @@ const ProdukScreen = ({ products, setProducts }) => {
       harga: parseInt(formData.harga) || 0,
       hpp: parseInt(formData.hpp) || 0,
     };
-    setProducts(editingProduct ? products.map(item => item.id === product.id ? product : item) : [...products, product]);
+    onSaveProduct(product, editingProduct);
     setModalOpen(false);
     resetForm();
   };
@@ -815,7 +816,21 @@ const App = () => {
   const [isDark, setIsDark] = useState(false);
   
   // Data States
-  const [products, setProducts] = useState(initialProduk);
+  const {
+    products,
+    loading: productsLoading,
+    error: productsError,
+    addProduct,
+    updateProduct,
+  } = useProducts();
+
+  const handleSaveProduct = async (product, editingProduct) => {
+    if (editingProduct) {
+      await updateProduct(product.id, product);
+    } else {
+      await addProduct(product);
+    }
+  };
   const [features, setFeatures] = useState(() => {
     try {
       const savedFeatures = localStorage.getItem('umkm-features');
@@ -894,7 +909,20 @@ const App = () => {
     switch (activeTab) {
       case 'dashboard': return <DashboardScreen navigate={setActiveTab} />;
       case 'penjualan': return <PenjualanScreen products={products} />;
-      case 'produk': return <ProdukScreen products={products} setProducts={setProducts} />;
+      case 'produk': return (
+        <>
+          {productsError && (
+            <div role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
+              {productsError}
+            </div>
+          )}
+          {productsLoading ? (
+            <div className="p-6 text-sm text-slate-500">Memuat produk...</div>
+          ) : (
+            <ProdukScreen products={products} onSaveProduct={handleSaveProduct} />
+          )}
+        </>
+      );
       case 'fitur': return <TambahFiturScreen features={features} toggleFeature={toggleFeature} />;
       case 'keuangan': return <PlaceholderScreen title="Modul Keuangan" description="Pencatatan kas masuk/keluar operasional (Selain dari penjualan produk)." />;
       case 'persediaan': return <PlaceholderScreen title="Modul Persediaan (Inventory)" description="Riwayat pergerakan stok, stok opname, dan pembelian ke supplier." />;

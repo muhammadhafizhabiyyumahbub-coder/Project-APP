@@ -4,6 +4,16 @@ import userEvent from '@testing-library/user-event';
 import App from '../docs/design/app.jsx';
 import ErrorBoundary from './ErrorBoundary';
 
+vi.mock('./hooks/useProducts.js', () => ({
+  useProducts: () => ({
+    products: [{ id: 'P001', nama: 'Beras Pandan Wangi 5kg', sku: 'BR-001', stok: 12, harga: 75000, hpp: 60000 }],
+    loading: false,
+    error: null,
+    addProduct: vi.fn(),
+    updateProduct: vi.fn(),
+  }),
+}));
+
 beforeEach(() => {
   localStorage.clear();
 });
