@@ -1,11 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import App from '../docs/design/app.jsx';
 import ErrorBoundary from './ErrorBoundary';
 
 beforeEach(() => {
   localStorage.clear();
+});
+
+afterEach(() => {
   vi.restoreAllMocks();
 });
 
@@ -84,7 +87,7 @@ describe('application shell', () => {
       throw new Error('test failure');
     };
 
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     render(<ErrorBoundary><Broken /></ErrorBoundary>);
 
     expect(screen.getByRole('alert')).toHaveTextContent('Aplikasi mengalami kendala');
