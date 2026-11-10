@@ -129,10 +129,13 @@ const Badge = ({ children, variant = 'info', className = '' }) => {
   );
 };
 
-const Input = ({ label, type = "text", placeholder, value, onChange, required = false }) => (
+const Input = ({ label, type = "text", placeholder, value, onChange, required = false }) => {
+  const inputId = label ? `input-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : undefined;
+  return (
   <div className="mb-4">
-    {label && <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{label} {required && <span className="text-rose-500">*</span>}</label>}
+    {label && <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{label} {required && <span className="text-rose-500">*</span>}</label>}
     <input 
+      id={inputId}
       type={type} 
       placeholder={placeholder} 
       value={value}
@@ -141,7 +144,8 @@ const Input = ({ label, type = "text", placeholder, value, onChange, required = 
       className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors" 
     />
   </div>
-);
+  );
+};
 
 const Select = ({ label, options, value, onChange, required = false }) => (
   <div className="mb-4">
@@ -188,7 +192,7 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-md" }) => {
       document.removeEventListener('keydown', handleKeyDown);
       previousFocus?.focus?.();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
   return (
@@ -710,16 +714,16 @@ const ProdukScreen = ({ products, setProducts }) => {
       {/* Add Product Modal */}
       <Modal isOpen={isModalOpen} onClose={() => { setModalOpen(false); resetForm(); }} title={editingProduct ? "Edit Produk" : "Tambah Produk Baru"}>
         <form onSubmit={handleSave} className="space-y-4">
-          <Input label="Nama Produk" required placeholder="Cth: Kopi Kapal Api" value={formData.nama} onChange={e => setFormData({...formData, nama: e.target.value})} />
+          <Input label="Nama Produk" required placeholder="Cth: Kopi Kapal Api" value={formData.nama} onChange={e => setFormData(current => ({...current, nama: e.target.value}))} />
           <div className="grid grid-cols-2 gap-4">
-             <Input label="SKU (Opsional)" placeholder="Cth: KP-01" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} />
-             <Input label="Kategori" placeholder="Cth: Minuman" value={formData.kategori} onChange={e => setFormData({...formData, kategori: e.target.value})} />
+             <Input label="SKU (Opsional)" placeholder="Cth: KP-01" value={formData.sku} onChange={e => setFormData(current => ({...current, sku: e.target.value}))} />
+             <Input label="Kategori" placeholder="Cth: Minuman" value={formData.kategori} onChange={e => setFormData(current => ({...current, kategori: e.target.value}))} />
           </div>
           <div className="grid grid-cols-2 gap-4">
-             <Input label="Harga Beli / HPP" type="number" value={formData.hpp} onChange={e => setFormData({...formData, hpp: e.target.value})} />
-             <Input label="Harga Jual" required type="number" value={formData.harga} onChange={e => setFormData({...formData, harga: e.target.value})} />
+             <Input label="Harga Beli / HPP" type="number" value={formData.hpp} onChange={e => setFormData(current => ({...current, hpp: e.target.value}))} />
+             <Input label="Harga Jual" required type="number" value={formData.harga} onChange={e => setFormData(current => ({...current, harga: e.target.value}))} />
           </div>
-          <Input label="Stok Awal" type="number" value={formData.stok} onChange={e => setFormData({...formData, stok: e.target.value})} />
+          <Input label="Stok Awal" type="number" value={formData.stok} onChange={e => setFormData(current => ({...current, stok: e.target.value}))} />
           <div className="pt-4 flex justify-end gap-3">
              <Button variant="secondary" onClick={() => setModalOpen(false)}>Batal</Button>
              <Button variant="primary" type="submit">Simpan Produk</Button>
