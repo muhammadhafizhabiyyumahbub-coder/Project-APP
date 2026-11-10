@@ -170,4 +170,58 @@ describe('Transaction Engine - Operating Transactions', () => {
     await expect(getAccountBalance('3100')).resolves.toBe(-300000); // Prive (contra-equity debit)
     await expect(getAccountBalance('1010')).resolves.toBe(700000); // Kas sisa
   });
+
+  it('verifies checkout integrity: sale creates one journal with revenue+hpp+stock', async () => {
+    await saveProduct({ id: 'P-CHK', nama: 'Test', stok: 5, hpp: 30000 });
+    const sale = await createSale({
+      saleNumber: 'CHK-001',
+      transactionDate: '2026-11-10',
+      customerId: 'CUST-CHK',
+      items: [{ productId: 'P-CHK', quantity: 2, unitPrice: 50000, total: 100000 }],
+      totalAmount: 100000,
+      paymentMethod: 'CASH',
+      paidAmount: 100000,
+    });
+
+    // Verify sale posted once
+    const journals = await db.journals.where('reference').equals(`SALE:${sale.id}`).toArray();
+    expect(journals.length).toBe(1);
+    expect(journals[0].status).toBe('POSTED');
+
+    // Verify journal entries: revenue + HPP cost
+    const entries = journals[0].entries;
+    const revEntry = entries.find(e => e.accountCode === '4000');
+    const hppEntry = entries.find(e => e.accountCode === '5100');
+    const stockEntry = entries.find(e => e.accountCode === '1200');
+    const kasEntry = entries.find(e => e.accountCode === '1010');
+
+    expect(revEntry.credit).toBe(100000);
+    expect(hppEntry.debit).toBe(60000); // 2 units * 30000 hpp
+    expect(stockEntry.credit).toBe(60000);
+    expect(kasEntry.debit).toBe(100000);
+
+    // Verify stock reduced
+    const product = await db.products.get('P-CHK');
+    expect(product.stok).toBe(3);
+
+    // Verify balances
+    await expect(getAccountBalance('1010')).resolves.toBe(100000);
+    await expect(getAccountBalance('4000')).resolves.toBe(100000);
+    await expect(getAccountBalance('5100')).resolves.toBe(60000);
+  });
+
+  it('prevents sale with insufficient stock', async () => {
+    await saveProduct({ id: 'P-STOCK', nama: 'Low Stock', stok: 1, hpp: 20000 });
+    await expect(
+      createSale({
+        saleNumber: 'CHK-002',
+        transactionDate: '2026-11-10',
+        customerId: 'CUST-STOCK',
+        items: [{ productId: 'P-STOCK', quantity: 2, unitPrice: 50000, total: 100000 }],
+        totalAmount: 100000,
+        paymentMethod: 'CASH',
+        paidAmount: 100000,
+      })
+    ).rejects.toThrow(/stok|stock/i);
+  });
 });

@@ -6,32 +6,53 @@ export function useProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const mountedRef = React.useRef(true);
 
   useEffect(() => {
-    let mounted = true;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
+  useEffect(() => {
     (async () => {
       try {
         await initializeDatabase();
         const list = await listProducts();
-        if (mounted) {
+        if (mountedRef.current) {
           setProducts(list);
           setError(null);
         }
       } catch (e) {
-        if (mounted) {
+        if (mountedRef.current) {
           setError(e.message || 'Gagal memuat produk dari penyimpanan lokal.');
           setProducts([]);
         }
       } finally {
-        if (mounted) setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     })();
-
-    return () => {
-      mounted = false;
-    };
   }, []);
+
+  const reloadProducts = async () => {
+    setLoading(true);
+    try {
+      await initializeDatabase();
+      const list = await listProducts();
+      if (mountedRef.current) {
+        setProducts(list);
+        setError(null);
+      }
+    } catch (e) {
+      if (mountedRef.current) {
+        setError(e.message || 'Gagal memuat produk dari penyimpanan lokal.');
+        setProducts([]);
+      }
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  };
 
   const addProduct = async (product) => {
     try {
@@ -72,5 +93,6 @@ export function useProducts() {
     addProduct,
     updateProduct,
     removeProduct,
+    reloadProducts,
   };
 }

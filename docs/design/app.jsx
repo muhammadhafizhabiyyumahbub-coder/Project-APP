@@ -3,7 +3,7 @@ import { useProducts } from '../../src/hooks/useProducts.js';
 import { useCustomers } from '../../src/hooks/useCustomers.js';
 import { db, initializeDatabase } from '../../src/storage/database.js';
 import { getAccountBalance } from '../../src/financial/financialEngine.js';
-import { recordOperatingExpense, recordCapitalContribution, recordOwnerWithdrawal } from '../../src/financial/transactionEngine.js';
+import { recordOperatingExpense, recordCapitalContribution, recordOwnerWithdrawal, createSale } from '../../src/financial/transactionEngine.js';
 
 // ==========================================
 // 1. ICONS (SVG Mocks for zero-dependency)
@@ -48,6 +48,7 @@ const Icon = ({ name, className = "w-5 h-5", strokeWidth = 2 }) => {
 // 2. MOCK DATA
 // ==========================================
 const formatIDR = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
+const normalizeCategory = (category) => category?.trim().toLowerCase() || '';
 const todayStr = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 
 const mockDashboard = {
@@ -233,8 +234,46 @@ const EmptyState = ({ icon, title, description, actionLabel, onAction }) => (
 // ==========================================
 
 // --- DASHBOARD SCREEN ---
-const DashboardScreen = ({ navigate }) => {
+const DashboardScreen = ({ navigate, products }) => {
   const [period, setPeriod] = useState('Bulan Ini');
+  const [financials, setFinancials] = useState({
+    kas: 0, bank: 0, pendapatan: 0, beban: 0, hpp: 0, piutang: 0, utang: 0
+  });
+  const [journals, setJournals] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const [kas, bank, pendapatan, beban, hpp, piutang, utang] = await Promise.all([
+          getAccountBalance('1010'),
+          getAccountBalance('1020'),
+          getAccountBalance('4000'),
+          getAccountBalance('5000'),
+          getAccountBalance('5100'),
+          getAccountBalance('1100'),
+          getAccountBalance('2100'),
+        ]);
+        
+        const recentJournals = (await db.journals.toArray()).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 5);
+
+        if (active) {
+          setFinancials({ kas, bank, pendapatan, beban, hpp, piutang, utang });
+          setJournals(recentJournals);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard data:', err);
+      }
+    };
+    load();
+    return () => { active = false; };
+  }, []);
+
+  const laba = financials.pendapatan - financials.hpp - financials.beban;
+  const inventoryLow = products?.filter(p => p.stok > 0 && p.stok <= 5).length || 0;
+  const inventoryOut = products?.filter(p => p.stok <= 0).length || 0;
 
   return (
     <div className="space-y-6">
@@ -266,14 +305,14 @@ const DashboardScreen = ({ navigate }) => {
         <Card className="flex flex-col justify-between">
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Saldo Kas</p>
           <div className="mt-2">
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">{formatIDR(mockDashboard.kas)}</p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">{formatIDR(financials.kas)}</p>
             <p className="text-xs text-slate-400 mt-1">Uang fisik di kasir</p>
           </div>
         </Card>
         <Card className="flex flex-col justify-between">
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Saldo Rekening</p>
           <div className="mt-2">
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">{formatIDR(mockDashboard.rekening)}</p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">{formatIDR(financials.bank)}</p>
             <p className="text-xs text-slate-400 mt-1">Dana di bank</p>
           </div>
         </Card>
@@ -282,7 +321,7 @@ const DashboardScreen = ({ navigate }) => {
         <Card className="flex flex-col justify-between border-l-4 border-l-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/10">
           <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Pendapatan</p>
           <div className="mt-2">
-            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatIDR(mockDashboard.pendapatan)}</p>
+            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatIDR(financials.pendapatan)}</p>
             <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-1 flex items-center gap-1">
               <Icon name="TrendingUp" className="w-3 h-3" /> Periode {period}
             </p>
@@ -292,7 +331,7 @@ const DashboardScreen = ({ navigate }) => {
         <Card className="flex flex-col justify-between border-l-4 border-l-rose-500 bg-rose-50/30 dark:bg-rose-900/10">
           <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Pengeluaran</p>
           <div className="mt-2">
-            <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{formatIDR(mockDashboard.pengeluaran)}</p>
+            <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{formatIDR(financials.beban)}</p>
             <p className="text-xs text-rose-600/80 dark:text-rose-400/80 mt-1 flex items-center gap-1">
                <Icon name="TrendingDown" className="w-3 h-3" /> Periode {period}
             </p>
@@ -303,14 +342,8 @@ const DashboardScreen = ({ navigate }) => {
         <Card className="md:col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Laba/Rugi (Estimasi)</p>
-            {mockDashboard.laba !== null ? (
-               <p className="text-3xl font-bold text-blue-900 dark:text-blue-100 mt-1">{formatIDR(mockDashboard.laba)}</p>
-            ) : (
-               <p className="text-xl font-semibold text-slate-500 dark:text-slate-400 mt-2 mb-1 flex items-center gap-2">
-                 <Icon name="AlertCircle" className="w-5 h-5 text-amber-500" /> Data HPP Belum Lengkap
-               </p>
-            )}
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Laba kotor operasional (Pendapatan - Pengeluaran - HPP)</p>
+            <p className="text-3xl font-bold text-blue-900 dark:text-blue-100 mt-1">{formatIDR(laba)}</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Laba kotor operasional (Pendapatan - Beban - HPP)</p>
           </div>
           <div className="hidden sm:block p-3 bg-blue-100/50 dark:bg-blue-800/50 rounded-full">
             <Icon name="TrendingUp" className="w-8 h-8 text-blue-600 dark:text-blue-400" />
@@ -321,14 +354,14 @@ const DashboardScreen = ({ navigate }) => {
         <Card className="flex items-center justify-between">
            <div>
              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Piutang</p>
-             <p className="text-xl font-bold text-amber-600 dark:text-amber-500 mt-1">{formatIDR(mockDashboard.piutang)}</p>
+             <p className="text-xl font-bold text-amber-600 dark:text-amber-500 mt-1">{formatIDR(financials.piutang)}</p>
              <p className="text-xs text-slate-400 mt-1">Tagihan pelanggan</p>
            </div>
         </Card>
         <Card className="flex items-center justify-between">
            <div>
              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Utang</p>
-             <p className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-1">{formatIDR(mockDashboard.utang)}</p>
+             <p className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-1">{formatIDR(financials.utang)}</p>
              <p className="text-xs text-slate-400 mt-1">Kewajiban usaha</p>
            </div>
         </Card>
@@ -340,9 +373,9 @@ const DashboardScreen = ({ navigate }) => {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Tren Penjualan</h2>
             <div className="text-sm text-slate-500 dark:text-slate-400">
-              <span className="font-semibold text-slate-900 dark:text-slate-100">{mockDashboard.salesCount}</span> Trx
+              <span className="font-semibold text-slate-900 dark:text-slate-100">{journals.length}</span> Trx
               <span className="mx-2">|</span>
-              Avg: <span className="font-semibold text-slate-900 dark:text-slate-100">{formatIDR(mockDashboard.salesAvg)}</span>
+              Avg: <span className="font-semibold text-slate-900 dark:text-slate-100">{formatIDR(journals.length ? financials.pendapatan / journals.length : 0)}</span>
             </div>
           </div>
           <div className="flex-1 min-h-[200px] flex items-end justify-between gap-2 px-2 pb-2">
@@ -369,16 +402,16 @@ const DashboardScreen = ({ navigate }) => {
             <ul className="space-y-3">
               <li className="flex justify-between items-center text-sm">
                 <span className="text-slate-600 dark:text-slate-400">Total Produk</span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100">{mockDashboard.inventoryTotal}</span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100">{products?.length || 0}</span>
               </li>
               <li className="flex justify-between items-center text-sm">
                 <span className="text-slate-600 dark:text-slate-400">Stok Menipis</span>
-                <Badge variant="warning">{mockDashboard.inventoryLow}</Badge>
+                <Badge variant="warning">{inventoryLow}</Badge>
               </li>
               <li className="flex justify-between items-center text-sm">
                 <span className="text-slate-600 dark:text-slate-400">Stok Habis</span>
-                {mockDashboard.inventoryOut > 0 ? (
-                  <Badge variant="danger">{mockDashboard.inventoryOut}</Badge>
+                {inventoryOut > 0 ? (
+                  <Badge variant="danger">{inventoryOut}</Badge>
                 ) : (
                   <Badge variant="success">Aman</Badge>
                 )}
@@ -443,15 +476,23 @@ const DashboardScreen = ({ navigate }) => {
 };
 
 // --- PENJUALAN (POS) SCREEN ---
-const PenjualanScreen = ({ products }) => {
+const PenjualanScreen = ({ products, reloadProducts }) => {
   const [cart, setCart] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [isCheckoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('Tunai');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
   
-  const filteredProducts = products.filter(p => 
-    p.nama.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase()))
+  const categories = Array.from(new Map(products
+    .map(p => p.kategori?.trim())
+    .filter(Boolean)
+    .map(category => [normalizeCategory(category), category])).values());
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const filteredProducts = products.filter(p =>
+    (p.nama?.toLowerCase().includes(normalizedSearch) || p.sku?.toLowerCase().includes(normalizedSearch)) &&
+    (!selectedCategory || normalizeCategory(p.kategori) === normalizeCategory(selectedCategory))
   );
 
   const addToCart = (product) => {
@@ -475,13 +516,47 @@ const PenjualanScreen = ({ products }) => {
     }));
   };
 
+  const setQty = (id, value) => {
+    const quantity = Number(value);
+    setCart(cart.map(item => item.id === id && Number.isInteger(quantity) && quantity > 0 && quantity <= item.stok
+      ? { ...item, qty: quantity }
+      : item));
+  };
+
   const removeFromCart = (id) => setCart(cart.filter(item => item.id !== id));
   
-  const handleCheckout = () => {
-    // In a real app, this would save to local DB and update stock.
-    alert(`Transaksi berhasil!\nTotal: ${formatIDR(total)}\nMetode: ${paymentMethod}`);
-    setCart([]);
-    setCheckoutModalOpen(false);
+  const handleCheckout = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const saleNumber = `INV-${Date.now()}`;
+      const isCash = paymentMethod === 'Tunai';
+      const paidAmount = isCash ? total : 0;
+      
+      await createSale({
+        saleNumber,
+        transactionDate: new Date().toISOString().slice(0, 10),
+        customerId: 'WALK-IN',
+        items: cart.map(item => ({
+          productId: item.id,
+          quantity: item.qty,
+          unitPrice: item.harga,
+          total: item.harga * item.qty,
+        })),
+        totalAmount: total,
+        paymentMethod: paymentMethod.toUpperCase(),
+        paidAmount,
+      });
+
+      alert(`Transaksi berhasil!\nNomor: ${saleNumber}\nTotal: ${formatIDR(total)}\nMetode: ${paymentMethod}`);
+      setCart([]);
+      setCheckoutModalOpen(false);
+      reloadProducts?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const total = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
@@ -504,10 +579,9 @@ const PenjualanScreen = ({ products }) => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <select className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none">
-              <option>Semua</option>
-              <option>Sembako</option>
-              <option>Kebutuhan</option>
+            <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Semua Kategori</option>
+              {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
           </div>
           <div className="flex-1 p-4 overflow-y-auto">
@@ -561,7 +635,17 @@ const PenjualanScreen = ({ products }) => {
                       <button type="button" aria-label={`Kurangi ${item.nama}`} onClick={() => updateQty(item.id, -1)} className="min-h-11 min-w-11 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300">
                         <Icon name="Minus" className="w-3 h-3" />
                       </button>
-                      <span className="text-sm font-medium w-6 text-center text-slate-900 dark:text-slate-100">{item.qty}</span>
+                      <label className="sr-only" htmlFor={`quantity-${item.id}`}>Jumlah {item.nama}</label>
+                      <input
+                        id={`quantity-${item.id}`}
+                        type="number"
+                        min="1"
+                        max={item.stok}
+                        step="1"
+                        value={item.qty}
+                        onChange={event => setQty(item.id, event.target.value)}
+                        className="h-11 w-12 bg-transparent text-center text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-slate-100"
+                      />
                       <button type="button" aria-label={`Tambah ${item.nama}`} onClick={() => updateQty(item.id, 1)} disabled={item.qty >= item.stok} className="min-h-11 min-w-11 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300 disabled:opacity-30">
                         <Icon name="Plus" className="w-3 h-3" />
                       </button>
@@ -589,6 +673,7 @@ const PenjualanScreen = ({ products }) => {
       {/* Checkout Modal */}
       <Modal isOpen={isCheckoutModalOpen} onClose={() => setCheckoutModalOpen(false)} title="Konfirmasi Pembayaran">
         <div className="space-y-4">
+          {error && <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
           <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 flex justify-between items-center">
             <span className="font-medium text-slate-600 dark:text-slate-300">Total Tagihan</span>
             <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatIDR(total)}</span>
@@ -602,8 +687,8 @@ const PenjualanScreen = ({ products }) => {
           <Input label="Catatan Transaksi (Opsional)" placeholder="Misal: Lunas, atau referensi transfer" />
           
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex gap-3">
-             <Button variant="secondary" className="w-full" onClick={() => setCheckoutModalOpen(false)}>Kembali</Button>
-             <Button variant="primary" icon="Check" className="w-full" onClick={handleCheckout}>Selesaikan</Button>
+             <Button variant="secondary" className="w-full" onClick={() => setCheckoutModalOpen(false)} disabled={saving}>Kembali</Button>
+             <Button variant="primary" icon="Check" className="w-full" onClick={handleCheckout} disabled={saving}>{saving ? 'Menyimpan...' : 'Selesaikan'}</Button>
           </div>
         </div>
       </Modal>
@@ -621,7 +706,16 @@ const ProdukScreen = ({ products, onSaveProduct, onDeleteProduct }) => {
     nama: '', sku: '', kategori: '', stok: 0, harga: 0, hpp: 0
   });
 
-  const filteredProducts = products.filter(p => p.nama.toLowerCase().includes(searchQuery.toLowerCase()));
+  const categories = Array.from(new Map(products
+    .map(p => p.kategori?.trim())
+    .filter(Boolean)
+    .map(category => [normalizeCategory(category), category])).values());
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const filteredProducts = products.filter(p =>
+    (p.nama?.toLowerCase().includes(normalizedSearch) || p.sku?.toLowerCase().includes(normalizedSearch)) &&
+    (!selectedCategory || normalizeCategory(p.kategori) === normalizeCategory(selectedCategory))
+  );
 
   const resetForm = () => {
     setFormData({ nama: '', sku: '', kategori: '', stok: 0, harga: 0, hpp: 0 });
@@ -667,10 +761,9 @@ const ProdukScreen = ({ products, onSaveProduct, onDeleteProduct }) => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <select className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            <option>Semua Kategori</option>
-            <option>Sembako</option>
-            <option>Makanan</option>
+          <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="">Semua Kategori</option>
+            {categories.map(category => <option key={category} value={category}>{category}</option>)}
           </select>
         </div>
         
@@ -895,20 +988,26 @@ const TRANSACTION_TYPES = {
 
 const FinancialScreen = () => {
   const [data, setData] = useState({ balances: {}, journals: [] });
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [form, setForm] = useState({ type: 'EXPENSE', amount: '', description: '' });
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
 
   const loadData = useCallback(async () => {
-    const entries = await Promise.all(['1010', '1100', '1200', '4000', '5100'].map(async code => [code, await getAccountBalance(code)]));
-    const journals = await db.journals.orderBy('createdAt').reverse().limit(10).toArray();
+    const entries = await Promise.all(['1010', '1020', '1100', '1200', '2100', '4000', '5000', '5100'].map(async code => [code, await getAccountBalance(code)]));
+    const journals = (await db.journals.toArray()).filter(journal => journal.status === 'POSTED').sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 10);
     setData({ balances: Object.fromEntries(entries), journals });
   }, []);
 
   useEffect(() => {
     let active = true;
-    initializeDatabase().then(loadData).catch(() => active && setError('Data keuangan gagal dimuat.'));
+    initializeDatabase().then(loadData).catch((err) => {
+      console.error('Gagal memuat data keuangan:', err);
+      if (active) setError('Data keuangan gagal dimuat. Coba buka kembali menu ini.');
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
     return () => { active = false; };
   }, [loadData]);
 
@@ -940,15 +1039,15 @@ const FinancialScreen = () => {
     }
   };
 
-  const labels = { '1010': 'Kas', '1100': 'Piutang', '1200': 'Persediaan', '4000': 'Pendapatan', '5100': 'HPP' };
+  const labels = { '1010': 'Kas', '1020': 'Bank', '1100': 'Piutang', '1200': 'Persediaan', '2100': 'Uang Muka Pelanggan', '4000': 'Pendapatan', '5000': 'Beban', '5100': 'HPP' };
   return (
     <div className="space-y-6">
       <div><h1 className="text-2xl font-semibold">Keuangan</h1><p className="mt-1 text-sm text-slate-500">Ringkasan saldo dari jurnal terposting.</p></div>
       {error && <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       {notice && <div role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{notice}</div>}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {loading ? <p className="text-sm text-slate-500">Memuat data keuangan...</p> : <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Object.entries(labels).map(([code, label]) => <div key={code} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-xl font-bold">{formatIDR(data.balances[code] || 0)}</p></div>)}
-      </div>
+      </div>}
       <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h2 className="font-semibold">Catat Transaksi</h2>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -966,7 +1065,7 @@ const FinancialScreen = () => {
         </div>
         <button type="submit" disabled={saving} className="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">{saving ? 'Menyimpan...' : 'Simpan'}</button>
       </form>
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h2 className="font-semibold">Jurnal Terbaru</h2>{data.journals.length === 0 ? <p className="mt-3 text-sm text-slate-500">Belum ada jurnal terposting.</p> : <div className="mt-3 space-y-2">{data.journals.map(journal => <div key={journal.id} className="border-b border-slate-100 py-2 text-sm dark:border-slate-800"><div className="flex justify-between"><span>{journal.journalNumber} · {journal.reference}</span><span>{journal.status}</span></div><div className="mt-1 text-xs text-slate-500">{journal.entries.map((entry, index) => <span key={`${journal.id}-${index}`} className="mr-3">{entry.accountCode}: D {formatIDR(entry.debit)} / K {formatIDR(entry.credit)}</span>)}</div></div>)}</div>}</section>
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h2 className="font-semibold">Jurnal Terbaru</h2>{loading ? <p className="mt-3 text-sm text-slate-500">Memuat jurnal...</p> : data.journals.length === 0 ? <p className="mt-3 text-sm text-slate-500">Belum ada jurnal terposting.</p> : <div className="mt-3 space-y-2">{data.journals.map(journal => <div key={journal.id} className="border-b border-slate-100 py-2 text-sm dark:border-slate-800"><div className="flex justify-between"><span>{journal.journalNumber} · {journal.reference}</span><span>{journal.status}</span></div><div className="mt-1 text-xs text-slate-500">{journal.entries.map((entry, index) => <span key={`${journal.id}-${index}`} className="mr-3">{entry.accountCode}: D {formatIDR(entry.debit)} / K {formatIDR(entry.credit)}</span>)}</div></div>)}</div>}</section>
     </div>
   );
 };
@@ -1020,6 +1119,7 @@ const App = () => {
     addProduct,
     updateProduct,
     removeProduct,
+    reloadProducts,
   } = useProducts();
 
   const {
@@ -1134,8 +1234,8 @@ const App = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <DashboardScreen navigate={setActiveTab} />;
-      case 'penjualan': return <PenjualanScreen products={products} />;
+      case 'dashboard': return <DashboardScreen navigate={setActiveTab} products={products} />;
+      case 'penjualan': return <PenjualanScreen products={products} reloadProducts={reloadProducts} />;
       case 'produk': return (
         <>
           {productsError && (
@@ -1177,7 +1277,7 @@ const App = () => {
       case 'piutang': return <PlaceholderScreen title="Buku Piutang & Utang" description="Kelola daftar piutang pelanggan dan hutang ke supplier." />;
       case 'laporan': return <PlaceholderScreen title="Laporan Bisnis" description="Laporan Laba Rugi sederhana, Arus Kas, dan Tren Penjualan." />;
       case 'pengaturan': return <PlaceholderScreen title="Pengaturan Aplikasi" description="Atur profil bisnis, mata uang, dan backup data lokal (Offline-first)." />;
-      default: return <DashboardScreen navigate={setActiveTab} />;
+      default: return <DashboardScreen navigate={setActiveTab} products={products} />;
     }
   };
 

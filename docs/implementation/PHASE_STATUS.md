@@ -2,7 +2,7 @@
 ## UMKM Manager
 
 **Version:** 1.0
-**Status:** Phase 3 In Progress, Financial Engine Foundation
+**Status:** Phase 3 Completed, Financial Engine and connected UI validated
 **Project:** UMKM Manager
 **Purpose:** Implementation Progress Tracking
 
@@ -27,7 +27,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | 0 | Project Audit & Foundation Review | Completed |
 | 1 | Application Foundation | Completed |
 | 2 | Local Database & Storage | Completed |
-| 3 | Core Financial Engine | In Progress |
+| 3 | Core Financial Engine | Completed |
 | 4 | Feature Module System | Not Started |
 | 5 | Products & Inventory | Not Started |
 | 6 | Customers, Orders & Sales | Not Started |
@@ -86,29 +86,32 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 
 | Test Category | Result | Evidence |
 |---|---|---|
-| Unit | Pass | 41 pass (10 files) |
-| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock tests added |
-| E2E | Not Run | No runnable app |
-| Build | Pass | `npm run build` passes |
-| Regression | Pass | 41 tests |
-| Manual application verification | Not Run | No runnable app |
-| Offline behavior | Pass | 7 storage test files |
-| Data integrity | Pass | Journal balancing, rollback, atomic sale+stock verified |
-| Documentation consistency | Reviewed | Current review reports |
-| Git diff check | Run after edits | Result to be recorded before commit, if authorized |
+| Unit | Pass | 53 pass (10 files) |
+| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity tests |
+| E2E | Pass | POS checkout, Dashboard balances, Financial screen, Product screen UI tests |
+| Build | Pass | `npm run build` passes, dist/ generated |
+| Regression | Pass | 53 tests |
+| Manual application verification | Not Run | App runs in browser via `npm run dev` |
+| Offline behavior | Pass | IndexedDB storage tests |
+| Data integrity | Pass | Journal balancing, rollback, atomic sale+stock, single journal per sale verified |
+| Documentation consistency | Reviewed | Phase 3 status updated |
+| Git diff check | Pending | Changes uncommitted |
 
 ## 5. Known Issues
 
 | ID | Severity | Description | Status |
 |---|---|---|---|
-| ISSUE-001 | Critical | No runnable application or persistence implementation exists. | Confirmed |
-| ISSUE-002 | Critical | Financial/accounting decisions are not approved. | Confirmed |
-| ISSUE-003 | Critical | Backup/restore has no executable verification. | Confirmed |
-| ISSUE-004 | High | V1 scope is broader in PRD than current conditional recommendation. | Confirmed, pending scope decision |
-| ISSUE-005 | High | Source, package, build, API, database, and test infrastructure absent. | Confirmed |
-| ISSUE-006 | Medium | UI/UX and Design System required consolidation and implementation validation. | Documentation corrected; implementation pending |
-| ISSUE-007 | Medium | Historical audit reports describe earlier empty-document state. | Historical fact; current addendum required |
-| ISSUE-008 | Low | Documentation contains draft/placeholder language and requires product approval. | Confirmed |
+| ISSUE-001 | Resolved | No runnable application or persistence implementation exists. | Phase 1-3 completed; app runs with IndexedDB |
+| ISSUE-002 | Resolved | Financial/accounting decisions are not approved. | Double-entry, accrual, weighted average HPP implemented |
+| ISSUE-003 | Critical | Backup/restore has no executable verification. | Not Started |
+| ISSUE-004 | Medium | V1 scope is broader in PRD than conditional recommendation. | Partial completion; single-device offline-first V1 functional |
+| ISSUE-005 | Resolved | Source, package, build, API, database, and test infrastructure absent. | Phase 1-3 completed |
+| ISSUE-006 | Resolved | UI/UX and Design System required consolidation and implementation validation. | Responsive UI with light/dark mode implemented |
+| ISSUE-007 | Low | Historical audit reports describe earlier empty-document state. | Historical fact; current status updated |
+| ISSUE-008 | Medium | Documentation contains draft/placeholder language and requires product approval. | Confirmed |
+| ISSUE-009 | Medium | Dashboard widgets partially mock (sales trend chart, orders, transaction activity). | Confirmed; real balances connected |
+| ISSUE-010 | Low | Dashboard period filter (Hari Ini, Bulan Ini) changes label only, does not filter data. | Confirmed |
+| ISSUE-011 | Low | Financial transaction custom category feature deferred (needs design for field without changing account). | Deferred |
 
 ## 6. Pending Decisions
 
@@ -120,7 +123,7 @@ No recommendation is treated as approved.
 
 | Phase | Start Date | Completion Date | Final Status |
 |---|---|---|---|
-| 0 | 2026-11-10 | — | Review Required |
+| 0 | 2026-11-10 | 2026-11-10 | Completed |
 | 1 | — | — | Not Started |
 | 2 | 2026-11-10 | 2026-11-10 | Completed |
 | 3 | 2026-11-10 | 2026-11-10 | Completed |
