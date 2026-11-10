@@ -547,17 +547,17 @@ const PenjualanScreen = ({ products }) => {
                 <div key={item.id} className="flex flex-col pb-3 border-b border-slate-100 dark:border-slate-800 last:border-0 last:pb-0">
                   <div className="flex justify-between items-start mb-2">
                     <p className="text-sm font-medium text-slate-800 dark:text-slate-200 pr-2 line-clamp-1">{item.nama}</p>
-                    <button onClick={() => removeFromCart(item.id)} className="text-slate-400 hover:text-rose-500 transition-colors">
+                    <button type="button" aria-label={`Hapus ${item.nama}`} onClick={() => removeFromCart(item.id)} className="min-h-11 min-w-11 text-slate-400 hover:text-rose-500 transition-colors">
                        <Icon name="X" className="w-4 h-4" />
                     </button>
                   </div>
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
-                      <button onClick={() => updateQty(item.id, -1)} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300">
+                      <button type="button" aria-label={`Kurangi ${item.nama}`} onClick={() => updateQty(item.id, -1)} className="min-h-11 min-w-11 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300">
                         <Icon name="Minus" className="w-3 h-3" />
                       </button>
                       <span className="text-sm font-medium w-6 text-center text-slate-900 dark:text-slate-100">{item.qty}</span>
-                      <button onClick={() => updateQty(item.id, 1)} disabled={item.qty >= item.stok} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300 disabled:opacity-30">
+                      <button type="button" aria-label={`Tambah ${item.nama}`} onClick={() => updateQty(item.id, 1)} disabled={item.qty >= item.stok} className="min-h-11 min-w-11 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300 disabled:opacity-30">
                         <Icon name="Plus" className="w-3 h-3" />
                       </button>
                     </div>

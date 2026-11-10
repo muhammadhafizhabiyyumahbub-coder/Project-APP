@@ -89,7 +89,6 @@ describe('application shell', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Aplikasi mengalami kendala');
     expect(screen.getByRole('button', { name: 'Muat ulang aplikasi' })).toBeInTheDocument();
-    error.mockRestore();
   });
 
   it('shows notification action feedback', async () => {
