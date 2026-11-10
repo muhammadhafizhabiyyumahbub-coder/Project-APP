@@ -1,126 +1,115 @@
 # UMKM Manager - UI/UX Specification
 
-## 1. Product Design Overview
-**UMKM Manager** dirancang sebagai aplikasi *offline-first* untuk pengelolaan bisnis berskala kecil hingga menengah (warung, toko kelontong, distributor, dll). Prioritas utama antarmuka adalah **kejelasan, kecepatan input, dan kepadatan informasi yang praktis** tanpa mengorbankan estetika modern (*SaaS quality*). Aplikasi harus bisa digunakan oleh awam tanpa latar belakang akuntansi.
+**Status:** Draft, pending product approval
+**Scope:** UI/UX direction only. No application implementation is verified.
+**Related:** `docs/design/DESIGN_SYSTEM.md`, `docs/product/PRD.md`
 
-## 2. User Persona & Kebutuhan
-* **Bapak Budi (Pemilik Toko Kelontong):** Butuh melihat stok barang secara cepat dan mencatat penjualan kasir dengan sedikit klik.
-* **Ibu Siti (Distributor/Reseller):** Butuh memantau status pesanan yang sedang diproses, utang/piutang pelanggan, dan melihat laporan laba-rugi sederhana.
-* **Kebutuhan Utama:** Akses instan ke status kesehatan bisnis (Dashboard), pencatatan transaksi cepat, tidak bingung dengan istilah akuntansi rumit (seperti *Debit/Kredit*, diganti dengan *Masuk/Keluar*).
+## 1. Product Design Direction
 
-## 3. Information Architecture & Navigation
-* **Global Header:** Pencarian global, Notifikasi, Toggle Tema (Terang/Gelap), Profil/Pengaturan.
-* **Primary Sidebar (Dapat diciutkan/Collapsed):**
-  * *Operasional:* Dashboard, Keuangan, Penjualan, Produk, Persediaan.
-  * *CRM & Orders:* Pelanggan, Pesanan, Piutang.
-  * *Analitik:* Laporan.
-  * *Sistem:* Tambah Fitur, Pengaturan.
+UMKM Manager is an offline-first application for small businesses. Interface priorities:
 
-## 4. Halaman Frontend (Screen Behaviors)
+- Fast, clear transaction entry.
+- Practical information density without visual clutter.
+- Plain Indonesian language for users without accounting training.
+- Clear separation between cash position, activity, profit, receivables, payables, stock, and orders.
+- Progressive disclosure for optional modules.
 
-### A. Dashboard (Prioritas Utama)
-Berfungsi sebagai *360-degree view* kondisi bisnis.
-* **Header Area:** Menyapa pengguna dan menampilkan filter periode (Hari ini, 7 Hari, Bulan Ini).
-* **Financial Summary:** Kartu metrik utama (Kas, Rekening, Pendapatan, Pengeluaran, Laba, Piutang, Utang). **Aturan UX:** Saldo Kas/Rekening menggunakan warna netral (biru/slate), sedangkan Pendapatan/Laba menggunakan warna *Success* (Emerald).
-* **Sales & Inventory Overview:** Grafik penjualan sederhana dan daftar peringatan stok (Menipis/Habis).
-* **Orders & Receivables:** Status operasional pesanan dan pengingat jatuh tempo piutang.
-* **Recent Activities:** Tabel ringkas transaksi terakhir.
+Design read: operational business dashboard for UMKM owners, calm and information-dense visual language, ENERGY 1 / RHYTHM 2 / MOTION 1. These dials are documentation guidance, not implementation evidence.
 
-### B. Penjualan (Kasir/POS)
-* Layout *split-screen*: Kiri untuk mencari dan memilih produk, kanan untuk keranjang/nota transaksi.
-* Fokus pada interaksi sentuh (tombol produk besar) dan *keyboard-friendly* untuk pencarian.
+Personas in current draft: shop owner needing quick stock and sales entry, and distributor/reseller needing order, receivable, and simple profit visibility. Persona names in earlier draft are examples only, not verified research.
 
-### C. Produk & Persediaan
-* Tabel *master data* padat informasi. Dilengkapi *inline search* dan filter kategori.
-* Terdapat *badge* peringatan warna kuning/merah untuk stok yang berada di bawah batas minimum.
+## 2. Information Architecture
 
-### D. Tambah Fitur (Module Catalog)
-* Menampilkan daftar kartu modul (contoh: Modul Piutang, Modul Pesanan).
-* Interaksi: Toggle Aktif/Nonaktif. Menonaktifkan modul disisipi *micro-copy* (teks kecil) yang menegaskan data lama tidak akan terhapus.
+App shell contains:
 
-### E. Halaman Lainnya (Keuangan, Pelanggan, Pesanan, Laporan, Pengaturan)
-* Berbagi *layout* standar: *Page Header* (Judul, Deskripsi, Tombol Aksi Utama di kanan), disusul dengan *Filter/Search bar*, dan diakhiri dengan *Data Table* atau *List View*.
+- **Global header:** global search where supported, notifications where supported, theme toggle, profile/settings.
+- **Primary sidebar:** Dashboard, Keuangan, Penjualan, Produk, Persediaan, Pelanggan, Pesanan, Piutang, Laporan, Tambah Fitur, Pengaturan.
+- **Module-driven navigation:** Pesanan, Piutang, and other optional modules appear only when enabled. Disabling a module must preserve its historical data.
+- **Content area:** page header, filters/search, primary action, then table/list or operational workspace.
 
-## 5. Interaction & Feedback States
-* **Empty States:** Ditampilkan secara visual (ikon abu-abu, teks ramah, dan tombol aksi utama) jika tabel kosong.
-* **Hover States:** Baris tabel dan tombol berubah warna latar secara halus untuk menandakan area interaktif.
-* **Loading States (Simulasi):** Penggunaan *skeleton loader* atau indikator *spinner* pada komponen spesifik.
+Navigation entries must point to real screens. Until screens exist, entries are planned navigation, not implemented navigation.
 
-## 6. Dark/Light Mode Behavior
-* **Toggle:** Berada di ujung kanan atas (Ikon Matahari/Bulan).
-* **Behavior:** Pilihan disimpan di `localStorage`. Tema secara menyeluruh mengubah warna latar (*background*), teks, garis batas (*borders*), dan bayangan (*shadows*).
-* **Kontras:** Memastikan teks sekunder tetap terbaca di mode gelap (menggunakan palet `slate-400` di atas `slate-900`).
+## 3. Responsive Behavior
 
-## 7. Responsive & Accessibility
-* **Mobile (< 768px):** Sidebar disembunyikan dalam *drawer* (Hamburger menu). Kartu summary menjadi 1-2 kolom. Tabel menggunakan *horizontal scroll*.
-* **Tablet (768px - 1024px):** Sidebar *collapsed* (hanya ikon).
-* **Accessibility:** Dukungan navigasi tab dasar, kontras teks yang mematuhi standar WCAG, dan penggunaan tag HTML semantik.
-UMKM Manager - UI/UX Specification (Revised)
+| Viewport | Behavior |
+|---|---|
+| Desktop, wider than 1024px | Sidebar visible and collapsible; content uses desktop spacing. |
+| Tablet and mobile, below 1024px | Sidebar becomes a drawer opened by hamburger; backdrop closes it. |
+| Mobile, below 768px | Summary content reflows to one or two columns; dense tables use an accessible responsive treatment. |
 
-1. Product Design Overview
+Exact breakpoint behavior remains a product/design decision to validate against implementation. Horizontal scrolling must not hide required row actions or create page-level overflow. Touch targets must be at least 44px. Keyboard order must follow visual order.
 
-Aplikasi manajemen bisnis offline-first untuk UMKM (warung, kelontong, dll). Desain menekankan kepadatan informasi yang rapi, pemisahan konsep keuangan yang jelas, dan kemudahan interaksi tanpa mengandalkan pengetahuan akuntansi.
+## 4. Screens and Behaviors
 
-2. Struktur Layout & Navigasi
+### 4.1 Dashboard
 
-App Shell: Terdiri dari Sidebar (Navigasi), Global Header (Pencarian & Toggle Tema), dan Content Area.
+- Period filter: Today, 7 days, This month, This year.
+- Financial summary separates cash/account balances, income, expenses, profit/loss, receivables, and payables.
+- Cash/account position uses neutral styling.
+- Income uses success styling; expenses use danger styling; receivables/due items use warning styling.
+- Profit must show a warning instead of a misleading value when required COGS data is incomplete.
+- Sales and inventory overview shows trends only when data exists.
+- Low/out-of-stock alerts, order status, receivable due reminders, and recent activity are separate information groups.
 
-Navigasi Adaptif (Module-driven): Menu di sidebar bersifat dinamis. Menu "Pesanan" dan "Piutang & Utang" hanya muncul jika diaktifkan melalui menu Tambah Fitur.
+### 4.2 Sales/POS
 
-Responsive Behavior:
+- Split workspace: product search/selection and cart/receipt.
+- Product controls support keyboard search and touch-friendly selection.
+- Out-of-stock products are disabled when policy disallows sale.
+- Cart supports quantity changes, removal, stock validation, subtotal calculation, and explicit checkout confirmation.
+- Payment method options are shown only when supported by approved business rules: cash, transfer, QRIS, and credit/receivable are currently proposed, not approved.
 
-Desktop (>1024px): Sidebar statis (bisa di-collapse).
+### 4.3 Products and Inventory
 
-Mobile (<1024px): Sidebar tersembunyi menjadi Drawer (Hamburger Menu) dengan backdrop blur.
+- Search by name/SKU and category filtering.
+- Dense master-data table with stock status.
+- Low-stock and out-of-stock indicators must not rely on color alone.
+- Product form proposal includes name, SKU, category, cost, selling price, and opening stock. Fields and accounting meaning remain subject to schema/business-rule approval.
 
-3. Spesifikasi Layar Utama (Screens)
+### 4.4 Optional Modules
 
-A. Dashboard (Pusat Ringkasan)
+- Module catalog displays available modules and enabled state.
+- Disable action must explain that historical data remains.
+- Module state is intended to persist locally, subject to implementation and storage verification.
 
-Filter Periode: Dropdown di header untuk memilih (Hari Ini, 7 Hari, Bulan Ini, Tahun Ini).
+### 4.5 Shared Screens
 
-Hierarki Kartu Keuangan (Pemisahan Jelas):
+Keuangan, Pelanggan, Pesanan, Piutang, Laporan, and Pengaturan use a consistent page header, search/filter area, primary action, and data view. The exact module list and workflow remain conditional on approved V1 scope.
 
-Posisi Uang (Kas/Rekening): Warna netral, diletakkan berdampingan untuk merepresentasikan saldo riil.
+## 5. UI States and Interaction
 
-Aktivitas (Pendapatan/Pengeluaran): Warna sukses (hijau) dan bahaya (merah).
+Every data view specifies:
 
-Laba/Rugi: Memiliki latar gradien (highlight). Jika data HPP (Harga Pokok Penjualan) tidak lengkap, tidak memaksakan angka menyesatkan, melainkan menampilkan status peringatan ("Data HPP Belum Lengkap").
+- **Empty:** explains what is absent and offers a relevant action when one exists.
+- **Loading:** skeleton or progress indicator scoped to the loading content.
+- **Error:** explains failure, preserves entered data where possible, and offers retry or recovery.
+- **Success:** confirms completed save/post/export without implying financial posting when only a draft was saved.
+- **Disabled:** explains why an action is unavailable.
 
-Kewajiban (Piutang/Utang): Dipisahkan di kartu kecil yang menegaskan status "belum dibayar".
+Modals use an overlay, a visible title, close/cancel action, Escape handling, focus management, and scroll containment. Buttons must have real behavior. Links must have real destinations. Forms need visible labels, validation, and feedback.
 
-Aktivitas Terbaru: Tabel transaksi campuran (Masuk/Keluar/Pembelian/Pembayaran Piutang). Pembayaran piutang secara spesifik dibedakan dari penjualan.
+## 6. Theme
 
-B. Penjualan / POS (Point of Sale)
+Light and dark themes are planned. Theme selection is intended to persist locally. Both themes must preserve contrast, focus visibility, disabled states, and semantic meaning. Theme implementation is not verified in the current repository.
 
-Layout: Split-screen (Kiri: Pencarian Produk, Kanan: Nota Keranjang).
+## 7. Accessibility
 
-Interaksi Produk: Kartu produk bisa diklik untuk masuk keranjang. Disabled state aktif jika stok = 0.
+- Semantic landmarks and heading hierarchy.
+- Keyboard access for navigation, forms, drawers, dialogs, and tables.
+- Visible `:focus-visible` indicator.
+- Minimum WCAG AA contrast target.
+- Do not use color as the only status signal.
+- Accessible names for controls and meaningful alternative text for images.
+- Reduced-motion support for non-essential transitions.
+- Responsive layout without page-level horizontal overflow.
 
-Keranjang: Mendukung penambahan/pengurangan quantity (+ / -) dengan validasi batas stok, dan hapus item. Menghitung subtotal otomatis.
+## 8. Open Design Decisions
 
-Checkout Flow: Klik "Bayar" membuka Modal Konfirmasi. Di dalamnya, kasir bisa memilih Metode Pembayaran (Tunai, Transfer, QRIS, Kredit/Piutang) dan menyimpan transaksi.
+- Whether all proposed modules belong in V1.
+- Exact desktop/tablet/mobile breakpoint values after implementation review.
+- Whether POS payment methods include QRIS and credit in first release.
+- Dashboard metrics shown when accounting and COGS rules remain pending.
+- Whether tables reflow, scroll within a region, or switch to cards on mobile.
+- Final visual validation and accessibility test evidence.
 
-C. Master Produk
-
-Interaksi Daftar: Tabel dengan search bar (berdasarkan Nama/SKU).
-
-Tambah Produk (Modal Form): Berisi input Nama (Wajib), SKU, Kategori, HPP, Harga Jual (Wajib), dan Stok Awal. Disimpan secara lokal (mock data).
-
-Empty State: Menggunakan desain seragam (Ikon bundar + Pesan) jika tabel kosong.
-
-D. Tambah Fitur (Module System)
-
-Perilaku Modul: Mengaktifkan/menonaktifkan modul akan langsung mengubah state global, yang berdampak pada muncul/hilangnya menu di Sidebar. Status ini harus dipertahankan secara persisten.
-
-4. Interaction & Feedback States
-
-Hover & Focus: Seluruh button dan input wajib memiliki state :hover (perubahan kecerahan) dan :focus-visible (cincin biru/ring-blue-500) agar mematuhi standar accessibility.
-
-Modals: Menggunakan overlay dengan backdrop-blur, dapat ditutup melalui tombol 'X' atau aksi tombol 'Batal'.
-
-5. Dark/Light Mode
-
-Toggle: Tombol transisi Matahari (Terang) dan Bulan (Gelap) di header persisten.
-
-Persistensi: Pilihan disimpan di localStorage (umkm-theme). Saat aplikasi dimuat, mengecek preferensi tersimpan, dan jika kosong, mengecek system settings OS.
+No open decision is treated as approved. No UI implementation is claimed by this specification.

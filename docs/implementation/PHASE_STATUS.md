@@ -1,33 +1,30 @@
-﻿# PHASE STATUS
+# PHASE STATUS
 ## UMKM Manager
 
-**Version:** 1.0  
-**Status:** Initial Tracking Template  
-**Project:** UMKM Manager  
+**Version:** 1.0
+**Status:** Phase 0 Review Required
+**Project:** UMKM Manager
 **Purpose:** Implementation Progress Tracking
 
----
-
-# 1. Project Overview
+## 1. Project Overview
 
 | Item | Status |
 |---|---|
-| Project | UMKM Manager |
-| Product Version | V1 |
-| Development Model | Offline-First |
-| Current Phase | Phase 0 ΓÇô Project Audit |
-| Current Status | Not Started |
+| Product Version | V1 draft |
+| Development Model | Offline-First, Local-First |
+| Current Phase | Phase 0, Documentation Consistency & Readiness Review |
+| Current Status | Review Required |
 | Approved Phase | None |
-| Next Action | Documentation Audit |
+| Next Action | User review and explicit approval of pending decisions and V1 scope |
 | Release Status | Not Released |
 
-**Important:** Status dalam dokumen ini harus berdasarkan pekerjaan yang benar-benar dilakukan dan bukti pengujian.
+Status reflects repository evidence. Documentation is not implementation evidence.
 
-# 2. Phase Progress
+## 2. Phase Progress
 
 | Phase | Name | Status |
 |---|---|---|
-| 0 | Project Audit & Foundation Review | Not Started |
+| 0 | Project Audit & Foundation Review | Review Required |
 | 1 | Application Foundation | Not Started |
 | 2 | Local Database & Storage | Not Started |
 | 3 | Core Financial Engine | Not Started |
@@ -41,220 +38,111 @@
 | 11 | Offline & Reliability Hardening | Not Started |
 | 12 | Final QA & V1 Release | Not Started |
 
-# 3. Status Definitions
+## 3. Phase 0 Details
 
-Gunakan status berikut secara konsisten:
+**Status:** Review Required
 
-| Status | Meaning |
-|---|---|
-| Not Started | Belum dimulai |
-| In Progress | Sedang dikerjakan |
-| Blocked | Terhambat masalah atau keputusan |
-| Testing | Sedang diuji |
-| Failed | Implementasi atau pengujian gagal |
-| Review Required | Menunggu pemeriksaan |
-| Awaiting Approval | Menunggu persetujuan pengguna |
-| Approved | Disetujui pengguna |
-| Completed | Selesai dan memenuhi syarat fase |
+### Verified completed audit/documentation tasks
 
-Jangan menggunakan Completed jika pengujian wajib belum berhasil atau persetujuan yang diwajibkan belum diberikan.
+- [x] Inspect current repository structure, Git branch, remote, and commit.
+- [x] Read required product, architecture, business, design, implementation, testing, and audit documents.
+- [x] Check source, package, build, database, test, and Lovable artifacts.
+- [x] Identify current documentation state and historical audit mismatch.
+- [x] Identify cross-document contradictions and gaps.
+- [x] Review unresolved business decisions.
+- [x] Review conditional V1 scope.
+- [x] Consolidate duplicate UI/UX and Design System drafts.
+- [x] Prepare consistency, decision-register, and scope-review documents.
 
-# 4. Current Phase Details
+### Not verified or not implemented
 
-## Phase 0 ΓÇö Project Audit & Foundation Review
-
-**Status:** Not Started
-
-### Tasks
-
-- [ ] Inspect repository.
-- [ ] Read product documentation.
-- [ ] Read financial and business rules.
-- [ ] Read architecture documentation.
-- [ ] Read database schema.
-- [ ] Read offline and backup specifications.
-- [ ] Inspect Lovable design files if available.
-- [ ] Inspect existing source code.
-- [ ] Identify missing documentation.
-- [ ] Identify contradictions.
-- [ ] Identify unresolved decisions.
-- [ ] Identify implementation risks.
-- [ ] Prepare audit report.
+- [ ] Runnable React application.
+- [ ] Package/dependency installation.
+- [ ] Build or local run.
+- [ ] Database implementation.
+- [ ] Financial engine.
+- [ ] Offline persistence implementation.
+- [ ] Backup/restore execution.
+- [ ] Automated or manual application tests.
+- [ ] Lovable integration.
 
 ### Results
 
-- Repository inspected: Not Verified
-- Documentation reviewed: Not Verified
-- Existing application reviewed: Not Verified
-- Design integration reviewed: Not Verified
-- Critical issues identified: Pending
-- Audit report: Pending
+- Repository inspected: Verified at current HEAD `0be20d2` before this review.
+- Documentation reviewed: Verified; populated drafts exist, with pending decisions and gaps.
+- Source code reviewed: Verified absent.
+- UI/design artifact reviewed: `docs/design/app.jsx` exists as a 1,002-line design artifact; runnable integration not verified.
+- UI/UX and Design System: Consolidated into single draft each; approval pending.
+- Critical risks: Financial rules, persistence, backup, and implementation evidence remain unresolved.
+- Reports: `docs/audit/PHASE_0_AUDIT_REPORT.md`, `DOCUMENTATION_CONSISTENCY_REPORT.md`, `BUSINESS_DECISION_REGISTER.md`, and `V1_SCOPE_REVIEW.md`.
 
 ### Approval
 
-- User approval: Pending
-- Approved by: Not Assigned
-- Approval date: Not Recorded
+- User approval: Pending.
+- Approved by: Not Assigned.
+- Approval date: Not Recorded.
 
-# 5. Phase History
+## 4. Testing Summary
 
-Catat setiap fase yang sudah dikerjakan.
+| Test Category | Result | Evidence |
+|---|---|---|
+| Unit | Not Run | No test implementation/configuration |
+| Integration | Not Run | No application implementation |
+| E2E | Not Run | No runnable app |
+| Build | Not Run | No package/build config |
+| Regression | Not Run | No runnable app |
+| Manual application verification | Not Run | No runnable app |
+| Offline behavior | Not Run | No implementation |
+| Data integrity | Not Run | No implementation |
+| Documentation consistency | Reviewed | Current review reports |
+| Git diff check | Run after edits | Result to be recorded before commit, if authorized |
 
-| Phase | Start Date | Completion Date | Final Status |
-|---|---|---|---|
-| Phase 0 | ΓÇö | ΓÇö | Not Started |
-| Phase 1 | ΓÇö | ΓÇö | Not Started |
-| Phase 2 | ΓÇö | ΓÇö | Not Started |
-| Phase 3 | ΓÇö | ΓÇö | Not Started |
-| Phase 4 | ΓÇö | ΓÇö | Not Started |
-| Phase 5 | ΓÇö | ΓÇö | Not Started |
-| Phase 6 | ΓÇö | ΓÇö | Not Started |
-| Phase 7 | ΓÇö | ΓÇö | Not Started |
-| Phase 8 | ΓÇö | ΓÇö | Not Started |
-| Phase 9 | ΓÇö | ΓÇö | Not Started |
-| Phase 10 | ΓÇö | ΓÇö | Not Started |
-| Phase 11 | ΓÇö | ΓÇö | Not Started |
-| Phase 12 | ΓÇö | ΓÇö | Not Started |
-
-Use actual dates. Do not estimate completion dates as historical facts.
-
-# 6. Testing Summary
-
-Setiap fase wajib mencatat hasil pengujian.
-
-| Test Category | Result |
-|---|---|
-| Unit Tests | Not Run |
-| Integration Tests | Not Run |
-| E2E Tests | Not Run |
-| Build | Not Run |
-| Regression Tests | Not Run |
-| Manual Verification | Not Run |
-| Offline Tests | Not Run |
-| Data Integrity Tests | Not Run |
-
-For each test execution, record:
-
-- Test command.
-- Execution date.
-- Total tests.
-- Passed.
-- Failed.
-- Skipped.
-- Blocked.
-- Relevant output or log reference.
-
-Do not count skipped tests as passed.
-
-# 7. Known Issues
+## 5. Known Issues
 
 | ID | Severity | Description | Status |
 |---|---|---|---|
-| ΓÇö | ΓÇö | No verified issues recorded yet | ΓÇö |
+| ISSUE-001 | Critical | No runnable application or persistence implementation exists. | Confirmed |
+| ISSUE-002 | Critical | Financial/accounting decisions are not approved. | Confirmed |
+| ISSUE-003 | Critical | Backup/restore has no executable verification. | Confirmed |
+| ISSUE-004 | High | V1 scope is broader in PRD than current conditional recommendation. | Confirmed, pending scope decision |
+| ISSUE-005 | High | Source, package, build, API, database, and test infrastructure absent. | Confirmed |
+| ISSUE-006 | Medium | UI/UX and Design System required consolidation and implementation validation. | Documentation corrected; implementation pending |
+| ISSUE-007 | Medium | Historical audit reports describe earlier empty-document state. | Historical fact; current addendum required |
+| ISSUE-008 | Low | Documentation contains draft/placeholder language and requires product approval. | Confirmed |
 
-Severity definitions:
+## 6. Pending Decisions
 
-- Critical: Data loss, financial corruption, security breach, or application unusable.
-- High: Major business workflow broken.
-- Medium: Significant functionality impaired with workaround.
-- Low: Minor defect or cosmetic issue.
+See `docs/audit/BUSINESS_DECISION_REGISTER.md` for the complete register. Pending items include accounting model and recognition basis, inventory costing, negative stock, customer advances/DP, overpayment, payment allocation, tax, fixed assets, fulfillment/returns, V1 product promise, fractional quantities/rounding, owner capital/withdrawals, and final UI contract.
 
-Only verified issues should be recorded as confirmed defects. Suspected issues must be labeled as suspected.
+No recommendation is treated as approved.
 
-# 8. Pending Decisions
+## 7. Phase History
 
-Record product or technical decisions that block implementation.
-
-| ID | Decision | Impact | Status |
+| Phase | Start Date | Completion Date | Final Status |
 |---|---|---|---|
-| DEC-001 | Accounting model: simplified ledger or double-entry | Financial architecture | Pending |
-| DEC-002 | Inventory costing: moving weighted average or FIFO | COGS and stock valuation | Pending |
-| DEC-003 | Negative stock policy | Inventory and sales | Pending |
-| DEC-004 | Down payment cancellation/refund policy | Orders and liabilities | Pending |
-| DEC-005 | Overpayment treatment | Receivables and customer balances | Pending |
-| DEC-006 | Payment allocation across invoices | Customer ledger | Pending |
-| DEC-007 | Tax support scope | Financial calculations | Pending |
-| DEC-008 | Fixed asset depreciation | Asset and profit reporting | Pending |
-| DEC-009 | Partial fulfillment and partial returns | Sales and inventory | Pending |
+| 0 | 2026-11-10 | — | Review Required |
+| 1 | — | — | Not Started |
+| 2 | — | — | Not Started |
+| 3 | — | — | Not Started |
+| 4 | — | — | Not Started |
+| 5 | — | — | Not Started |
+| 6 | — | — | Not Started |
+| 7 | — | — | Not Started |
+| 8 | — | — | Not Started |
+| 9 | — | — | Not Started |
+| 10 | — | — | Not Started |
+| 11 | — | — | Not Started |
+| 12 | — | — | Not Started |
 
-Update this list when decisions are approved or new blocking decisions are discovered.
+## 8. Risks
 
-Do not remove historical decisions. Record their resolution.
+- Financial model or recognition errors can corrupt balances, profit, cash flow, receivables, and stock.
+- Schema may require migration if pending decisions are delayed.
+- Offline conflicts and backdated costing may change historical reports.
+- Backup may restore structurally valid but financially incorrect data without integrity tests.
+- Broad scope can make V1 untestable and delay release.
+- No implementation evidence exists for any documented feature.
 
-# 9. Implementation Change Log
+## 9. Completion Gate
 
-Record significant implementation changes.
-
-| Date | Phase | Change | Reason | Approved |
-|---|---|---|---|---|
-| ΓÇö | ΓÇö | No implementation changes recorded | ΓÇö | ΓÇö |
-
-# 10. Approval Log
-
-Record explicit user approvals.
-
-| Date | Phase | Decision | Result |
-|---|---|---|---|
-| ΓÇö | ΓÇö | No approvals recorded | ΓÇö |
-
-Do not mark a phase approved based on silence or an inferred decision.
-
-# 11. Current Risks
-
-Track risks that may affect the project.
-
-| ID | Risk | Severity | Mitigation |
-|---|---|---|---|
-| RISK-001 | Financial model not finalized | Critical | Resolve before financial engine implementation |
-| RISK-002 | Lovable integration not verified | High | Inspect exported project before Phase 1 |
-| RISK-003 | Local browser storage loss | High | Implement and test backup/restore |
-| RISK-004 | Inconsistent inventory and sales records | Critical | Atomic operations and reconciliation |
-| RISK-005 | Unclear fractional quantity handling | Medium | Decide decimal-safe representation |
-| RISK-006 | Backup incompatibility after schema changes | High | Versioned backup and migration tests |
-
-# 12. Phase Completion Requirements
-
-A phase can be marked Completed only when:
-
-- [ ] Approved scope implemented.
-- [ ] Required tests executed.
-- [ ] Required tests passed.
-- [ ] Build checks passed.
-- [ ] No unresolved Critical issues.
-- [ ] High issues affecting the phase resolved or explicitly accepted.
-- [ ] Documentation updated.
-- [ ] Implementation report submitted.
-- [ ] User approval recorded.
-
-# 13. Update Policy
-
-OpenCode must update this document:
-
-1. When a phase starts.
-2. When a phase becomes blocked.
-3. When an important issue is discovered.
-4. After test execution.
-5. When a phase is ready for review.
-6. After explicit user approval.
-7. When a phase is completed.
-
-Do not rewrite historical results to make progress appear better.
-
-Maintain an accurate record of failed attempts, regressions, and unresolved problems.
-
-# 14. Current Project Instruction
-
-The current authorized task is:
-
-**Phase 0 ΓÇô Project Audit & Foundation Review**
-
-OpenCode must begin with documentation and repository analysis.
-
-No application implementation is authorized by this tracking document.
-
-After the audit report is delivered, stop and wait for user approval.
-
----
-
-**Document Status:** Initial Tracking Template.  
-**Current Implementation Authorization:** Documentation Audit Only.
+Phase 0 cannot be Completed until the user reviews this documentation, resolves or explicitly defers blocking decisions, approves V1 scope, and records approval. Phase 1 remains Not Started and unauthorized.
