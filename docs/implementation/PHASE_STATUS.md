@@ -159,6 +159,9 @@ Phase 1 started after explicit user approval. Current work is limited to applica
 - Manual validation: browser load passed with no console errors; mobile menu opened and closed, theme toggled, and the browser returned no runtime errors. Native browser click refs were unreliable, so DOM interaction was used for these checks.
 - Phase 2 storage foundation started after explicit approval: Dexie schema, initialization helper, reset helper, persistence test, and transaction rollback test added.
 - Repository layer: product CRUD repository added with trust-boundary validation and automated CRUD/validation tests.
+- Customer CRUD repository and `useCustomers` hook added with validation and automated repository tests.
+- Product repository renamed to `productRepository` for explicit module ownership; database schema and reopen persistence tests expanded.
+- Current Phase 2 validation: 5 test files and 18 tests pass; production build passes.
 - Database, financial engine, API, and business feature implementation: Not Started.
 
 ## 10. Completion Gate

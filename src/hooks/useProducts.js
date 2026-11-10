@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { initializeDatabase } from '../storage/database.js';
-import { listProducts, saveProduct, deleteProduct } from '../storage/repository.js';
+import { listProducts, saveProduct, deleteProduct } from '../storage/productRepository.js';
 
 export function useProducts() {
   const [products, setProducts] = useState([]);

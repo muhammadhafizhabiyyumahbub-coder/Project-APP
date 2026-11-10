@@ -1,10 +1,10 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useProducts } from './useProducts';
-import * as repo from '../storage/repository.js';
+import * as repo from '../storage/productRepository.js';
 import * as database from '../storage/database.js';
 
-vi.mock('../storage/repository.js');
+vi.mock('../storage/productRepository.js');
 vi.mock('../storage/database.js');
 
 afterEach(() => {

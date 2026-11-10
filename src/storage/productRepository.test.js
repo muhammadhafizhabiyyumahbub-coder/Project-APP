@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetDatabase } from './database';
-import { deleteProduct, getProduct, listProducts, saveProduct } from './repository';
+import { deleteProduct, getProduct, listProducts, saveProduct } from './productRepository';
 
 afterEach(async () => {
   await resetDatabase();
