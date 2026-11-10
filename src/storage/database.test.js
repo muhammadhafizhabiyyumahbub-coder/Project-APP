@@ -30,6 +30,29 @@ describe('local database foundation', () => {
     });
   });
 
+  it('persists product records across database connections', async () => {
+    await initializeDatabase();
+    await db.products.put({ id: 'P003', nama: 'Produk Browser', sku: 'B-03' });
+    db.close();
+
+    const secondConnection = new Dexie('umkm-manager');
+    secondConnection.version(DATABASE_VERSION).stores({
+      businesses: 'id',
+      products: 'id, sku, nama',
+      customers: 'id, nama',
+      settings: 'id, key',
+      features: 'featureId',
+    });
+    await secondConnection.open();
+
+    await expect(secondConnection.products.get('P003')).resolves.toMatchObject({
+      id: 'P003',
+      nama: 'Produk Browser',
+    });
+
+    secondConnection.close();
+  });
+
   it('rolls back a failed transaction', async () => {
     await initializeDatabase();
 

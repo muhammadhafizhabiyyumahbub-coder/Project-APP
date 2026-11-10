@@ -1053,7 +1053,10 @@ const App = () => {
         <>
           {productsError && (
             <div role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
-              {productsError}
+              <span>{productsError}</span>
+              <Button variant="ghost" className="mt-2 text-red-700 dark:text-red-300" onClick={() => window.location.reload()}>
+                Muat ulang aplikasi
+              </Button>
             </div>
           )}
           {productsLoading ? (
@@ -1070,7 +1073,10 @@ const App = () => {
         <>
           {customersError && (
             <div role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
-              {customersError}
+              <span>{customersError}</span>
+              <Button variant="ghost" className="mt-2 text-red-700 dark:text-red-300" onClick={() => window.location.reload()}>
+                Muat ulang aplikasi
+              </Button>
             </div>
           )}
           {customersLoading ? (

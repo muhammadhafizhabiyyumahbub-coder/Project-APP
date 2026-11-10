@@ -164,10 +164,12 @@ Phase 1 started after explicit user approval. Current work is limited to applica
 - Product UI now reads and writes through `useProducts`, backed by IndexedDB; loading and storage-error states display on the product route.
 - Settings repository (key/value storage) and features repository (feature toggles) added with automated tests.
 - Product UI now supports confirmed deletion through `useProducts`; delete interaction test added.
-- Current Phase 2 validation: 7 test files and 26 tests pass; production build passes.
+- Current Phase 2 validation: 7 test files and 27 tests pass; production build passes.
 - Database startup initialization added in `src/main.jsx`.
 - Migration test verifies existing records survive a schema version bump.
-- Remaining Phase 2 validation: browser restart persistence and storage error recovery UI.
+- Persistence across IndexedDB connections is covered by an automated test; this does not replace manual browser restart verification.
+- Product and customer storage errors display a reload action.
+- Remaining Phase 2 validation: manual browser restart/persistence verification and final phase review.
 - Database foundation is active; financial engine, API, and business transaction implementation remain not started.
 
 ## 10. Completion Gate
