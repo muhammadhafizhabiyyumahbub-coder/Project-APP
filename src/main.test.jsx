@@ -40,6 +40,16 @@ describe('application shell', () => {
     expect(screen.getByText('Belum ada jurnal terposting.')).toBeInTheDocument();
   });
 
+  it('validates financial transaction amount', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getAllByRole('button', { name: /keuangan/i })[0]);
+
+    await user.click(screen.getByRole('button', { name: 'Simpan' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Jumlah harus lebih dari 0.');
+  });
+
   it('opens product screen from navigation', async () => {
     const user = userEvent.setup();
     render(<App />);

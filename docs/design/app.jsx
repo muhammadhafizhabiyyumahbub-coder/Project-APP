@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useProducts } from '../../src/hooks/useProducts.js';
 import { useCustomers } from '../../src/hooks/useCustomers.js';
-import { db } from '../../src/storage/database.js';
+import { db, initializeDatabase } from '../../src/storage/database.js';
 import { getAccountBalance } from '../../src/financial/financialEngine.js';
+import { recordOperatingExpense, recordCapitalContribution, recordOwnerWithdrawal } from '../../src/financial/transactionEngine.js';
 
 // ==========================================
 // 1. ICONS (SVG Mocks for zero-dependency)
@@ -886,29 +887,85 @@ const TambahFiturScreen = ({ features, toggleFeature }) => {
 };
 
 // --- GENERIC PLACEHOLDER SCREEN ---
+const TRANSACTION_TYPES = {
+  EXPENSE: { label: 'Beban Operasional', handler: recordOperatingExpense, prefix: 'EXP' },
+  CAPITAL: { label: 'Setoran Modal', handler: recordCapitalContribution, prefix: 'CONTRIB' },
+  WITHDRAWAL: { label: 'Prive Pemilik', handler: recordOwnerWithdrawal, prefix: 'WITHDRAW' },
+};
+
 const FinancialScreen = () => {
   const [data, setData] = useState({ balances: {}, journals: [] });
   const [error, setError] = useState(null);
+  const [form, setForm] = useState({ type: 'EXPENSE', amount: '', description: '' });
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState(null);
+
+  const loadData = useCallback(async () => {
+    const entries = await Promise.all(['1010', '1100', '1200', '4000', '5100'].map(async code => [code, await getAccountBalance(code)]));
+    const journals = await db.journals.orderBy('createdAt').reverse().limit(10).toArray();
+    setData({ balances: Object.fromEntries(entries), journals });
+  }, []);
 
   useEffect(() => {
     let active = true;
-    Promise.all(['1010', '1100', '1200', '4000', '5100'].map(async code => [code, await getAccountBalance(code)]))
-      .then(async entries => {
-        const journals = await db.journals.orderBy('createdAt').reverse().limit(10).toArray();
-        if (active) setData({ balances: Object.fromEntries(entries), journals });
-      })
-      .catch(() => active && setError('Data keuangan gagal dimuat.'));
+    initializeDatabase().then(loadData).catch(() => active && setError('Data keuangan gagal dimuat.'));
     return () => { active = false; };
-  }, []);
+  }, [loadData]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const amount = Number(form.amount);
+    if (!amount || amount <= 0) {
+      setError('Jumlah harus lebih dari 0.');
+      return;
+    }
+    const { handler, prefix } = TRANSACTION_TYPES[form.type];
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await handler({
+        referenceNumber: `${prefix}-${Date.now()}`,
+        transactionDate: new Date().toISOString().slice(0, 10),
+        amount,
+        description: form.description || undefined,
+      });
+      setForm({ type: form.type, amount: '', description: '' });
+      setNotice('Transaksi tercatat.');
+      await loadData();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const labels = { '1010': 'Kas', '1100': 'Piutang', '1200': 'Persediaan', '4000': 'Pendapatan', '5100': 'HPP' };
   return (
     <div className="space-y-6">
       <div><h1 className="text-2xl font-semibold">Keuangan</h1><p className="mt-1 text-sm text-slate-500">Ringkasan saldo dari jurnal terposting.</p></div>
       {error && <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      {notice && <div role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{notice}</div>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {Object.entries(labels).map(([code, label]) => <div key={code} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-xl font-bold">{formatIDR(data.balances[code] || 0)}</p></div>)}
       </div>
+      <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="font-semibold">Catat Transaksi</h2>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <label className="text-sm">Jenis
+            <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2 dark:border-slate-700 dark:bg-slate-800">
+              {Object.entries(TRANSACTION_TYPES).map(([value, { label }]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+          <label className="text-sm">Jumlah (Rp)
+            <input type="number" min="1" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2 dark:border-slate-700 dark:bg-slate-800" />
+          </label>
+          <label className="text-sm">Keterangan (opsional)
+            <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2 dark:border-slate-700 dark:bg-slate-800" />
+          </label>
+        </div>
+        <button type="submit" disabled={saving} className="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">{saving ? 'Menyimpan...' : 'Simpan'}</button>
+      </form>
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h2 className="font-semibold">Jurnal Terbaru</h2>{data.journals.length === 0 ? <p className="mt-3 text-sm text-slate-500">Belum ada jurnal terposting.</p> : <div className="mt-3 space-y-2">{data.journals.map(journal => <div key={journal.id} className="border-b border-slate-100 py-2 text-sm dark:border-slate-800"><div className="flex justify-between"><span>{journal.journalNumber} · {journal.reference}</span><span>{journal.status}</span></div><div className="mt-1 text-xs text-slate-500">{journal.entries.map((entry, index) => <span key={`${journal.id}-${index}`} className="mr-3">{entry.accountCode}: D {formatIDR(entry.debit)} / K {formatIDR(entry.credit)}</span>)}</div></div>)}</div>}</section>
     </div>
   );

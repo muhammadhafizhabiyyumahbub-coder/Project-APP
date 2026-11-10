@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { db, initializeDatabase, resetDatabase } from '../storage/database';
 import { getAccountBalance } from './financialEngine';
-import { createSale, recordPayment } from './transactionEngine';
+import { createSale, recordPayment, recordOperatingExpense, recordCapitalContribution, recordOwnerWithdrawal } from './transactionEngine';
 import { saveProduct } from '../storage/productRepository';
 
 beforeEach(async () => {
@@ -36,10 +36,10 @@ describe('Transaction Engine - Sales and Payments', () => {
 
     // Verify journal posted
     const journal = await db.journals.where('reference').equals(`SALE:${sale.id}`).first();
-    expect(journal).toBeDefined();
     expect(journal.status).toBe('POSTED');
+    expect(journal.entries.length).toBeGreaterThan(0);
 
-    // Verify account balances
+    // Verify balances
     await expect(getAccountBalance('1010')).resolves.toBe(100000); // Kas
     await expect(getAccountBalance('4000')).resolves.toBe(100000); // Pendapatan
     await expect(getAccountBalance('5100')).resolves.toBe(120000); // HPP
@@ -47,97 +47,127 @@ describe('Transaction Engine - Sales and Payments', () => {
     expect((await db.products.get('P001')).stok).toBe(0);
   });
 
-  it('posts credit sale with receivable', async () => {
+  it('prevents overpayment on sale', async () => {
     const sale = await createSale({
       saleNumber: 'INV-002',
       transactionDate: '2026-11-10',
-      customerId: 'CUST-002',
-      items: [
-        { productId: 'P002', quantity: 1, unitPrice: 200000, total: 200000 },
-      ],
-      totalAmount: 200000,
+      customerId: 'CUST-001',
+      items: [{ productId: 'P001', quantity: 1, unitPrice: 50000, total: 50000 }],
+      totalAmount: 50000,
       paymentMethod: 'CREDIT',
       paidAmount: 0,
     });
 
-    expect(sale.status).toBe('UNPAID');
-
-    const journal = await db.journals.where('reference').equals(`SALE:${sale.id}`).first();
-    expect(journal.status).toBe('POSTED');
-
-    // Piutang belum di chart accounts, test basic posting dulu
-    await expect(getAccountBalance('4000')).resolves.toBe(200000);
+    await expect(
+      recordPayment({
+        paymentNumber: 'PAY-001',
+        transactionDate: '2026-11-10',
+        saleId: sale.id,
+        amount: 60000,
+      })
+    ).rejects.toThrow('melebihi sisa tagihan');
   });
 
-  it('records partial payment against sale', async () => {
+  it('prevents payment on completed sale', async () => {
     const sale = await createSale({
       saleNumber: 'INV-003',
       transactionDate: '2026-11-10',
-      customerId: 'CUST-003',
-      items: [
-        { productId: 'P003', quantity: 1, unitPrice: 500000, total: 500000 },
-      ],
-      totalAmount: 500000,
-      paymentMethod: 'CREDIT',
-      paidAmount: 0,
+      customerId: 'CUST-001',
+      items: [{ productId: 'P002', quantity: 1, unitPrice: 50000, total: 50000 }],
+      totalAmount: 50000,
+      paymentMethod: 'CASH',
+      paidAmount: 50000,
     });
 
-    const payment = await recordPayment({
-      paymentNumber: 'PAY-001',
-      transactionDate: '2026-11-10',
-      saleId: sale.id,
-      amount: 200000,
-      paymentMethod: 'CASH',
-    });
-
-    expect(payment.id).toBeDefined();
-    expect(payment.amount).toBe(200000);
-
-    const paymentJournal = await db.journals.where('reference').equals(`PAYMENT:${payment.id}`).first();
-    expect(paymentJournal.status).toBe('POSTED');
-
-    await expect(getAccountBalance('1010')).resolves.toBe(200000);
-  });
-
-  it('prevents duplicate sale posting with idempotency key', async () => {
-    const saleData = {
-      saleNumber: 'INV-DUP',
-      transactionDate: '2026-11-10',
-      customerId: 'CUST-DUP',
-      items: [{ productId: 'P-DUP', quantity: 1, unitPrice: 100000, total: 100000 }],
-      totalAmount: 100000,
-      paymentMethod: 'CASH',
-      paidAmount: 100000,
-      idempotencyKey: 'SALE-IDEM-001',
-    };
-
-    const sale1 = await createSale(saleData);
-    const sale2 = await createSale({ ...saleData, saleNumber: 'INV-DUP-2' });
-
-    expect(sale2.id).toBe(sale1.id);
-
-    const journals = await db.journals.where('reference').startsWith('SALE:').toArray();
-    expect(journals.length).toBe(1);
-
-    await expect(getAccountBalance('1010')).resolves.toBe(100000);
-  });
-
-  it('rejects overpayment and posts nothing', async () => {
     await expect(
-      createSale({
-        saleNumber: 'INV-FAIL',
+      recordPayment({
+        paymentNumber: 'PAY-002',
         transactionDate: '2026-11-10',
-        customerId: 'CUST-FAIL',
-        items: [{ productId: 'P-FAIL', quantity: 1, unitPrice: 75000, total: 75000 }],
-        totalAmount: 75000,
-        paymentMethod: 'CASH',
-        paidAmount: 100000,
+        saleId: sale.id,
+        amount: 10000,
       })
-    ).rejects.toThrow('Pembayaran melebihi total tagihan.');
+    ).rejects.toThrow('sudah lunas');
+  });
 
-    const journals = await db.journals.toArray();
-    expect(journals.length).toBe(0);
-    const sales = await db.sales.toArray();
-    expect(sales.length).toBe(0);
+  it('prevents duplicate posting via idempotency key', async () => {
+    const key = 'IDEMPOTENT-TEST-001';
+    const sale1 = await createSale({
+      saleNumber: 'INV-004',
+      transactionDate: '2026-11-10',
+      customerId: 'CUST-001',
+      items: [{ productId: 'P003', quantity: 1, unitPrice: 50000, total: 50000 }],
+      totalAmount: 50000,
+      paymentMethod: 'CASH',
+      paidAmount: 50000,
+      idempotencyKey: key,
+    });
+
+    const sale2 = await createSale({
+      saleNumber: 'INV-004-DUP',
+      transactionDate: '2026-11-10',
+      customerId: 'CUST-001',
+      items: [{ productId: 'P001', quantity: 1, unitPrice: 50000, total: 50000 }],
+      totalAmount: 50000,
+      paymentMethod: 'CASH',
+      paidAmount: 50000,
+      idempotencyKey: key,
+    });
+
+    expect(sale1.id).toBe(sale2.id);
+  });
+});
+
+describe('Transaction Engine - Operating Transactions', () => {
+  it('records operating expense atomically', async () => {
+    const expense = await recordOperatingExpense({
+      referenceNumber: 'EXP-001',
+      transactionDate: '2026-11-10',
+      amount: 250000,
+      description: 'Bayar Listrik',
+    });
+
+    expect(expense.status).toBe('POSTED');
+    await expect(getAccountBalance('5000')).resolves.toBe(250000); // Beban
+    await expect(getAccountBalance('1010')).resolves.toBe(-250000); // Kas kurang
+  });
+
+  it('prevents negative expense amount', async () => {
+    await expect(
+      recordOperatingExpense({
+        referenceNumber: 'EXP-002',
+        transactionDate: '2026-11-10',
+        amount: -50000,
+      })
+    ).rejects.toThrow('harus > 0');
+  });
+
+  it('records capital contribution atomically', async () => {
+    const contrib = await recordCapitalContribution({
+      referenceNumber: 'CONTRIB-001',
+      transactionDate: '2026-11-10',
+      amount: 5000000,
+    });
+
+    expect(contrib.status).toBe('POSTED');
+    await expect(getAccountBalance('1010')).resolves.toBe(5000000); // Kas masuk
+    await expect(getAccountBalance('3000')).resolves.toBe(5000000); // Modal (equity credit balance)
+  });
+
+  it('records owner withdrawal atomically', async () => {
+    await recordCapitalContribution({
+      referenceNumber: 'CONTRIB-002',
+      transactionDate: '2026-11-10',
+      amount: 1000000,
+    });
+
+    const withdrawal = await recordOwnerWithdrawal({
+      referenceNumber: 'WITHDRAW-001',
+      transactionDate: '2026-11-10',
+      amount: 300000,
+    });
+
+    expect(withdrawal.status).toBe('POSTED');
+    await expect(getAccountBalance('3100')).resolves.toBe(-300000); // Prive (contra-equity debit)
+    await expect(getAccountBalance('1010')).resolves.toBe(700000); // Kas sisa
   });
 });

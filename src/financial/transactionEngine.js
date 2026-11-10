@@ -142,3 +142,90 @@ export async function recordPayment(paymentData) {
     return payment;
   });
 }
+
+// recordOperatingExpense: beban operasional (selain HPP)
+export async function recordOperatingExpense(expenseData) {
+  await initializeDatabase();
+
+  if (expenseData.amount <= 0) {
+    throw new Error('Jumlah beban harus > 0.');
+  }
+
+  const idempotencyKey = expenseData.idempotencyKey || `EXPENSE-${expenseData.referenceNumber}`;
+  const existingJournal = await getJournalByIdempotencyKey(idempotencyKey);
+  if (existingJournal && existingJournal.status === 'POSTED') return existingJournal;
+
+  return await db.transaction('rw', db.journals, db.auditTrail, async () => {
+    const journal = await createJournal({
+      journalNumber: `JE-${expenseData.referenceNumber}`,
+      transactionDate: expenseData.transactionDate,
+      description: expenseData.description || `Beban Operasional ${expenseData.referenceNumber}`,
+      reference: `EXPENSE:${expenseData.referenceNumber}`,
+      idempotencyKey,
+      entries: [
+        { accountCode: '5000', debit: expenseData.amount, credit: 0 }, // Beban
+        { accountCode: '1010', debit: 0, credit: expenseData.amount }, // Kas
+      ],
+    });
+    await postJournalInline(journal);
+    return journal;
+  });
+}
+
+// recordCapitalContribution: setoran modal pemilik
+export async function recordCapitalContribution(contributionData) {
+  await initializeDatabase();
+
+  if (contributionData.amount <= 0) {
+    throw new Error('Jumlah setoran harus > 0.');
+  }
+
+  const idempotencyKey = contributionData.idempotencyKey || `CONTRIB-${contributionData.referenceNumber}`;
+  const existingJournal = await getJournalByIdempotencyKey(idempotencyKey);
+  if (existingJournal && existingJournal.status === 'POSTED') return existingJournal;
+
+  return await db.transaction('rw', db.journals, db.auditTrail, async () => {
+    const journal = await createJournal({
+      journalNumber: `JE-${contributionData.referenceNumber}`,
+      transactionDate: contributionData.transactionDate,
+      description: `Setoran Modal ${contributionData.referenceNumber}`,
+      reference: `CONTRIB:${contributionData.referenceNumber}`,
+      idempotencyKey,
+      entries: [
+        { accountCode: '1010', debit: contributionData.amount, credit: 0 }, // Kas
+        { accountCode: '3000', debit: 0, credit: contributionData.amount }, // Modal
+      ],
+    });
+    await postJournalInline(journal);
+    return journal;
+  });
+}
+
+// recordOwnerWithdrawal: pengambilan prive pemilik
+export async function recordOwnerWithdrawal(withdrawalData) {
+  await initializeDatabase();
+
+  if (withdrawalData.amount <= 0) {
+    throw new Error('Jumlah prive harus > 0.');
+  }
+
+  const idempotencyKey = withdrawalData.idempotencyKey || `WITHDRAW-${withdrawalData.referenceNumber}`;
+  const existingJournal = await getJournalByIdempotencyKey(idempotencyKey);
+  if (existingJournal && existingJournal.status === 'POSTED') return existingJournal;
+
+  return await db.transaction('rw', db.journals, db.auditTrail, async () => {
+    const journal = await createJournal({
+      journalNumber: `JE-${withdrawalData.referenceNumber}`,
+      transactionDate: withdrawalData.transactionDate,
+      description: `Prive Pemilik ${withdrawalData.referenceNumber}`,
+      reference: `WITHDRAW:${withdrawalData.referenceNumber}`,
+      idempotencyKey,
+      entries: [
+        { accountCode: '3100', debit: withdrawalData.amount, credit: 0 }, // Prive
+        { accountCode: '1010', debit: 0, credit: withdrawalData.amount }, // Kas
+      ],
+    });
+    await postJournalInline(journal);
+    return journal;
+  });
+}
