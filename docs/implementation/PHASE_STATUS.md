@@ -25,7 +25,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | Phase | Name | Status |
 |---|---|---|
 | 0 | Project Audit & Foundation Review | Review Required |
-| 1 | Application Foundation | Not Started |
+| 1 | Application Foundation | In Progress |
 | 2 | Local Database & Storage | Not Started |
 | 3 | Core Financial Engine | Not Started |
 | 4 | Feature Module System | Not Started |
@@ -143,6 +143,16 @@ No recommendation is treated as approved.
 - Broad scope can make V1 untestable and delay release.
 - No implementation evidence exists for any documented feature.
 
-## 9. Completion Gate
+## 9. Phase 1 Start Record
 
-Phase 0 cannot be Completed until the user reviews this documentation, resolves or explicitly defers blocking decisions, approves V1 scope, and records approval. Phase 1 remains Not Started and unauthorized.
+Phase 1 started after explicit user approval. Current work is limited to application foundation: Vite/React shell, entry point, design import, and build configuration.
+
+- Start date: 2026-11-10
+- Authorization: User explicitly approved starting Phase 1.
+- Current status: In Progress
+- Build validation: Passed with `npm run build`.
+- Database, financial engine, API, and feature implementation: Not Started.
+
+## 10. Completion Gate
+
+Phase 0 cannot be Completed until the user reviews this documentation, resolves or explicitly defers blocking decisions, approves V1 scope, and records approval. Phase 1 cannot be Completed until its required foundation tests and user review pass.
