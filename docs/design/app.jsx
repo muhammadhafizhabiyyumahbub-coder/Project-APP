@@ -11,6 +11,8 @@ import { recordOperatingExpense, recordCapitalContribution, recordOwnerWithdrawa
 import { InventoryScreen } from './InventoryScreen.jsx';
 import { CustomerOrdersScreen } from './CustomerOrdersScreen.jsx';
 import { listProductCategories, matchesProduct } from '../../src/storage/productSearch.js';
+import { listInvoices } from '../../src/storage/invoiceRepository.js';
+import { recordPayment } from '../../src/financial/transactionEngine.js';
 
 // ==========================================
 // 1. ICONS (SVG Mocks for zero-dependency)
@@ -387,16 +389,16 @@ const DashboardScreen = ({ navigate, products }) => {
 
           <Card className="p-4">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-3 flex items-center gap-2">
-              <Icon name="ShoppingCart" className="w-4 h-4 text-slate-400" /> Pesanan Berjalan
+              <Icon name="DollarSign" className="w-4 h-4 text-slate-400" /> Aktivitas Finansial
             </h3>
             <div className="grid grid-cols-2 gap-2 text-center">
               <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded border border-slate-100 dark:border-slate-800">
                 <p className="text-xl font-semibold text-slate-900 dark:text-slate-50">{journals.filter(journal => journal.status === 'POSTED').length}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Baru</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Transaksi Terposting</p>
               </div>
               <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-900/30">
                 <p className="text-xl font-semibold text-blue-700 dark:text-blue-400">{journals.filter(journal => journal.status === 'DRAFT').length}</p>
-                <p className="text-xs text-blue-600 dark:text-blue-500">Diproses</p>
+                <p className="text-xs text-blue-600 dark:text-blue-500">Draf</p>
               </div>
             </div>
           </Card>
@@ -1101,6 +1103,73 @@ const PlaceholderScreen = ({ title, description }) => (
   <Card className="h-full flex items-center justify-center min-h-[60vh]"><EmptyState icon="Grid" title={title} description={description || "Layar ini merupakan bagian dari purwarupa. Data belum disambungkan ke fungsi ini."} /></Card>
 );
 
+const ReceivablesScreen = ({ customers }) => {
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+  const [paymentForm, setPaymentForm] = useState({ saleId: '', amount: '', paymentNumber: '' });
+  const [paymentError, setPaymentError] = useState(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    initializeDatabase().then(async () => {
+      const data = await listInvoices({ customerId: selectedCustomerId, limit: 500 });
+      if (active) setInvoices(data);
+    }).catch(err => {
+      if (active) setError(err.message);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [selectedCustomerId]);
+
+  const handlePayment = async e => {
+    e.preventDefault();
+    setPaymentError(null);
+    setPaymentSuccess(null);
+    if (!paymentForm.saleId || !paymentForm.amount || !paymentForm.paymentNumber) {
+      setPaymentError('Semua field harus diisi.');
+      return;
+    }
+    try {
+      const amount = parseInt(paymentForm.amount, 10);
+      await recordPayment({ saleId: paymentForm.saleId, paymentNumber: paymentForm.paymentNumber, transactionDate: new Date().toISOString().split('T')[0], amount });
+      setPaymentSuccess('Pembayaran tercatat.');
+      setPaymentForm({ saleId: '', amount: '', paymentNumber: '' });
+      setInvoices(await listInvoices({ customerId: selectedCustomerId, limit: 500 }));
+    } catch (err) {
+      setPaymentError(err.message);
+    }
+  };
+
+  const statusColor = status => {
+    if (status === 'PAID') return 'text-emerald-600 dark:text-emerald-400';
+    if (status === 'OVERDUE') return 'text-rose-600 dark:text-rose-400';
+    if (status === 'PARTIAL') return 'text-amber-600 dark:text-amber-400';
+    return 'text-slate-600 dark:text-slate-400';
+  };
+
+  return (
+    <div className="space-y-6">
+      <div><h1 className="text-2xl font-semibold">Piutang Pelanggan</h1><p className="mt-1 text-sm text-slate-500">Kelola invoice dan pembayaran pelanggan.</p></div>
+      {error && <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      <Card>
+        <label className="text-sm font-medium">Filter Pelanggan</label>
+        <select value={selectedCustomerId || ''} onChange={e => setSelectedCustomerId(e.target.value || null)} className="mt-2 w-full rounded-lg border border-slate-300 p-2 dark:border-slate-700 dark:bg-slate-800">
+          <option value="">Semua Pelanggan</option>
+          {customers.map(c => <option key={c.id} value={c.id}>{c.nama}</option>)}
+        </select>
+      </Card>
+      <Card>
+        <h2 className="font-semibold mb-3">Daftar Invoice</h2>
+        {loading ? <p className="text-sm text-slate-500">Memuat invoice...</p> : invoices.length === 0 ? <p className="text-sm text-slate-500">Tidak ada invoice.</p> : <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-slate-200 dark:border-slate-800"><th className="text-left py-2 px-2">No. Penjualan</th><th className="text-left py-2 px-2">Pelanggan</th><th className="text-right py-2 px-2">Total</th><th className="text-right py-2 px-2">Terbayar</th><th className="text-right py-2 px-2">Sisa</th><th className="py-2 px-2">Status</th><th className="py-2 px-2">Aksi</th></tr></thead><tbody>{invoices.map(inv => <tr key={inv.id} className="border-b border-slate-100 dark:border-slate-800"><td className="py-2 px-2">{inv.saleNumber}</td><td className="py-2 px-2 text-xs">{inv.customerId}</td><td className="text-right py-2 px-2">{formatIDR(inv.totalAmount)}</td><td className="text-right py-2 px-2">{formatIDR(inv.paidAmount)}</td><td className="text-right py-2 px-2">{formatIDR(inv.outstandingAmount)}</td><td className={`py-2 px-2 font-medium ${statusColor(inv.invoiceStatus)}`}>{inv.invoiceStatus}</td><td className="py-2 px-2"><button type="button" onClick={() => setPaymentForm({ saleId: inv.id, amount: '', paymentNumber: '' })} disabled={inv.invoiceStatus === 'PAID'} className="text-xs text-blue-600 hover:underline disabled:opacity-50">Bayar</button></td></tr>)}</tbody></table></div>}
+      </Card>
+      {paymentForm.saleId && <Card><h2 className="font-semibold mb-3">Catat Pembayaran</h2>{paymentError && <div role="alert" className="rounded-lg bg-red-50 p-2 text-sm text-red-700 mb-3">{paymentError}</div>}{paymentSuccess && <div role="status" className="rounded-lg bg-green-50 p-2 text-sm text-green-700 mb-3">{paymentSuccess}</div>}<form onSubmit={handlePayment} className="space-y-3"><div><label className="text-sm">Nomor Pembayaran<input type="text" value={paymentForm.paymentNumber} onChange={e => setPaymentForm({ ...paymentForm, paymentNumber: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2 dark:border-slate-700 dark:bg-slate-800" placeholder="PAY-001" /></label></div><div><label className="text-sm">Jumlah (Rp)<input type="number" min="1" value={paymentForm.amount} onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2 dark:border-slate-700 dark:bg-slate-800" /></label></div><div className="flex gap-2"><Button type="submit">Simpan Pembayaran</Button><button type="button" onClick={() => setPaymentForm({ saleId: '', amount: '', paymentNumber: '' })} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">Batal</button></div></form></Card>}
+    </div>
+  );
+};
 
 // ==========================================
 // 5. NAVIGATION ITEM COMPONENT

@@ -57,6 +57,7 @@ export async function createSale(saleData) {
     paidAmount,
     paymentMethod: saleData.paymentMethod,
     status: paidAmount >= saleData.totalAmount ? 'COMPLETED' : 'UNPAID',
+    dueDate: saleData.dueDate,
     createdAt: new Date().toISOString(),
   };
 
