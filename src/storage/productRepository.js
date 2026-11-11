@@ -4,7 +4,12 @@ function requireProduct(product) {
   if (!product?.id || !product?.nama?.trim()) {
     throw new Error('Produk memerlukan id dan nama.');
   }
-  return { ...product, nama: product.nama.trim() };
+  return {
+    ...product,
+    nama: product.nama.trim(),
+    sku: product.sku?.trim() || '',
+    kategori: product.kategori?.trim() || '',
+  };
 }
 
 export async function listProducts() {

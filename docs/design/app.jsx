@@ -10,7 +10,7 @@ import { getAccountBalance } from '../../src/financial/financialEngine.js';
 import { recordOperatingExpense, recordCapitalContribution, recordOwnerWithdrawal, createSale } from '../../src/financial/transactionEngine.js';
 import { InventoryScreen } from './InventoryScreen.jsx';
 import { CustomerOrdersScreen } from './CustomerOrdersScreen.jsx';
-import { ReceivablesScreen } from './ReceivablesScreen.jsx';
+import { listProductCategories, matchesProduct } from '../../src/storage/productSearch.js';
 
 // ==========================================
 // 1. ICONS (SVG Mocks for zero-dependency)
@@ -51,50 +51,8 @@ const Icon = ({ name, className = "w-5 h-5", strokeWidth = 2 }) => {
   );
 };
 
-// ==========================================
-// 2. MOCK DATA
-// ==========================================
 const formatIDR = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
-const normalizeCategory = (category) => category?.trim().toLowerCase() || '';
 const todayStr = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
-
-const mockDashboard = {
-  kas: 12500000,
-  rekening: 35000000,
-  pendapatan: 18500000,
-  pengeluaran: 6200000,
-  laba: null, // intentionally null to show "Estimasi/Belum tersedia" state
-  piutang: 4200000,
-  utang: 1500000,
-  salesTotal: 18500000,
-  salesCount: 45,
-  salesAvg: 411111,
-  inventoryTotal: 124,
-  inventoryLow: 5,
-  inventoryOut: 2,
-  orderNew: 3,
-  orderProcess: 5,
-  orderReady: 2,
-  orderDone: 28,
-  receivableTotal: 4200000,
-  receivableLate: 1200000
-};
-
-const mockTransaksi = [
-  { id: 'TRX-001', tanggal: '10/11/2026', tipe: 'Penjualan', deskripsi: 'INV-202611-01', jumlah: 850000, status: 'Masuk' },
-  { id: 'TRX-002', tanggal: '10/11/2026', tipe: 'Pengeluaran', deskripsi: 'Bayar Listrik & Air', jumlah: 450000, status: 'Keluar' },
-  { id: 'TRX-003', tanggal: '09/11/2026', tipe: 'Penjualan', deskripsi: 'Toko Budi - Grosir', jumlah: 2100000, status: 'Masuk' },
-  { id: 'TRX-004', tanggal: '09/11/2026', tipe: 'Pembayaran Piutang', deskripsi: 'Cicilan Piutang Bpk. Ali', jumlah: 500000, status: 'Masuk' },
-  { id: 'TRX-005', tanggal: '08/11/2026', tipe: 'Pembelian', deskripsi: 'Restock Distributor Utama', jumlah: 3500000, status: 'Keluar' },
-];
-
-const initialProduk = [
-  { id: 'P001', sku: 'B-PND-5', nama: 'Beras Pandan Wangi 5kg', kategori: 'Sembako', stok: 12, hpp: 65000, harga: 75000 },
-  { id: 'P002', sku: 'M-BML-2', nama: 'Minyak Goreng Bimoli 2L', kategori: 'Sembako', stok: 3, hpp: 32000, harga: 36000 },
-  { id: 'P003', sku: 'I-GRG-1', nama: 'Indomie Goreng (Dus)', kategori: 'Makanan', stok: 15, hpp: 98000, harga: 110000 },
-  { id: 'P004', sku: 'G-GLK-1', nama: 'Gula Pasir Gulaku 1kg', kategori: 'Sembako', stok: 0, hpp: 13000, harga: 15000 },
-  { id: 'P005', sku: 'S-LFB-1', nama: 'Sabun Mandi Lifebuoy', kategori: 'Kebutuhan', stok: 45, hpp: 3000, harga: 4500 },
-];
 
 const mockFeaturesData = [
   { id: 'f-pesanan', nama: 'Manajemen Pesanan (Order)', deskripsi: 'Lacak status operasional pesanan (Diproses, Dikirim, Selesai).', aktif: true },
@@ -432,11 +390,11 @@ const DashboardScreen = ({ navigate, products }) => {
             </h3>
             <div className="grid grid-cols-2 gap-2 text-center">
               <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded border border-slate-100 dark:border-slate-800">
-                <p className="text-xl font-semibold text-slate-900 dark:text-slate-50">{mockDashboard.orderNew}</p>
+                <p className="text-xl font-semibold text-slate-900 dark:text-slate-50">{journals.filter(journal => journal.status === 'POSTED').length}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Baru</p>
               </div>
               <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-900/30">
-                <p className="text-xl font-semibold text-blue-700 dark:text-blue-400">{mockDashboard.orderProcess}</p>
+                <p className="text-xl font-semibold text-blue-700 dark:text-blue-400">{journals.filter(journal => journal.status === 'DRAFT').length}</p>
                 <p className="text-xs text-blue-600 dark:text-blue-500">Diproses</p>
               </div>
             </div>
@@ -460,20 +418,17 @@ const DashboardScreen = ({ navigate, products }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {mockTransaksi.map(trx => (
-                <tr key={trx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{trx.tanggal}</td>
-                  <td className="px-5 py-3">
-                    <Badge variant={trx.status === 'Masuk' ? 'success' : (trx.tipe === 'Pembelian' ? 'neutral' : 'danger')}>
-                      {trx.tipe}
-                    </Badge>
-                  </td>
-                  <td className="px-5 py-3 font-medium text-slate-800 dark:text-slate-200">{trx.deskripsi}</td>
-                  <td className={`px-5 py-3 text-right font-semibold ${trx.status === 'Masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-slate-100'}`}>
-                    {trx.status === 'Masuk' ? '+' : '-'}{formatIDR(trx.jumlah)}
-                  </td>
-                </tr>
-              ))}
+              {journals.length === 0 ? (
+                <tr><td colSpan="4" className="px-5 py-6 text-center text-slate-500">Belum ada transaksi tersimpan.</td></tr>
+              ) : journals.map(journal => {
+                const amount = journal.entries.reduce((sum, entry) => sum + (entry.debit || 0), 0);
+                return <tr key={journal.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{journal.transactionDate}</td>
+                  <td className="px-5 py-3"><Badge variant={journal.status === 'POSTED' ? 'success' : 'neutral'}>{journal.status}</Badge></td>
+                  <td className="px-5 py-3 font-medium text-slate-800 dark:text-slate-200">{journal.description || journal.reference}</td>
+                  <td className="px-5 py-3 text-right font-semibold text-slate-900 dark:text-slate-100">{formatIDR(amount)}</td>
+                </tr>;
+              })}
             </tbody>
           </table>
         </div>
@@ -492,16 +447,10 @@ const PenjualanScreen = ({ products, customers = [], reloadProducts }) => {
   const [customerId, setCustomerId] = useState('WALK-IN');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [qtyError, setQtyError] = useState(null);
   
-  const categories = Array.from(new Map(products
-    .map(p => p.kategori?.trim())
-    .filter(Boolean)
-    .map(category => [normalizeCategory(category), category])).values());
-  const normalizedSearch = searchQuery.trim().toLowerCase();
-  const filteredProducts = products.filter(p =>
-    (p.nama?.toLowerCase().includes(normalizedSearch) || p.sku?.toLowerCase().includes(normalizedSearch)) &&
-    (!selectedCategory || normalizeCategory(p.kategori) === normalizeCategory(selectedCategory))
-  );
+  const categories = listProductCategories(products);
+  const filteredProducts = products.filter(p => matchesProduct(p, searchQuery, selectedCategory));
 
   const addToCart = (product) => {
     const existing = cart.find(item => item.id === product.id);
@@ -525,10 +474,14 @@ const PenjualanScreen = ({ products, customers = [], reloadProducts }) => {
   };
 
   const setQty = (id, value) => {
+    if (value === '') return;
     const quantity = Number(value);
-    setCart(cart.map(item => item.id === id && Number.isInteger(quantity) && quantity > 0 && quantity <= item.stok
-      ? { ...item, qty: quantity }
-      : item));
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > cart.find(item => item.id === id)?.stok) {
+      setQtyError('Jumlah harus bilangan bulat dan tidak boleh melebihi stok.');
+      return;
+    }
+    setQtyError(null);
+    setCart(cart.map(item => item.id === id ? { ...item, qty: quantity } : item));
   };
 
   const removeFromCart = (id) => setCart(cart.filter(item => item.id !== id));
@@ -627,7 +580,8 @@ const PenjualanScreen = ({ products, customers = [], reloadProducts }) => {
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white dark:bg-slate-900">
-            {cart.length === 0 ? (
+            {qtyError && <div role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">{qtyError}</div>}
+             {cart.length === 0 ? (
               <EmptyState icon="ShoppingCart" title="Keranjang Kosong" description="Pilih produk dari daftar di samping." />
             ) : (
               cart.map((item) => (
@@ -720,16 +674,9 @@ const ProdukScreen = ({ products, onSaveProduct, onDeleteProduct }) => {
     nama: '', sku: '', kategori: '', stok: 0, harga: 0, hpp: 0
   });
 
-  const categories = Array.from(new Map(products
-    .map(p => p.kategori?.trim())
-    .filter(Boolean)
-    .map(category => [normalizeCategory(category), category])).values());
+  const categories = listProductCategories(products);
   const [selectedCategory, setSelectedCategory] = useState('');
-  const normalizedSearch = searchQuery.trim().toLowerCase();
-  const filteredProducts = products.filter(p =>
-    (p.nama?.toLowerCase().includes(normalizedSearch) || p.sku?.toLowerCase().includes(normalizedSearch)) &&
-    (!selectedCategory || normalizeCategory(p.kategori) === normalizeCategory(selectedCategory))
-  );
+  const filteredProducts = products.filter(p => matchesProduct(p, searchQuery, selectedCategory));
 
   const resetForm = () => {
     setFormData({ nama: '', sku: '', kategori: '', stok: 0, harga: 0, hpp: 0 });
@@ -1074,13 +1021,13 @@ const FinancialScreen = () => {
           <label className="text-sm">Jumlah (Rp)
             <input type="number" min="1" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2 dark:border-slate-700 dark:bg-slate-800" />
           </label>
-          <label className="text-sm">Keterangan (opsional)
-            <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2 dark:border-slate-700 dark:bg-slate-800" />
+          <label className="text-sm">Deskripsi/Kategori
+            <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2 dark:border-slate-700 dark:bg-slate-800" placeholder="Cth: Listrik, Transportasi" />
           </label>
         </div>
         <button type="submit" disabled={saving} className="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">{saving ? 'Menyimpan...' : 'Simpan'}</button>
       </form>
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h2 className="font-semibold">Jurnal Terbaru</h2>{loading ? <p className="mt-3 text-sm text-slate-500">Memuat jurnal...</p> : data.journals.length === 0 ? <p className="mt-3 text-sm text-slate-500">Belum ada jurnal terposting.</p> : <div className="mt-3 space-y-2">{data.journals.map(journal => <div key={journal.id} className="border-b border-slate-100 py-2 text-sm dark:border-slate-800"><div className="flex justify-between"><span>{journal.journalNumber} · {journal.reference}</span><span>{journal.status}</span></div><div className="mt-1 text-xs text-slate-500">{journal.entries.map((entry, index) => <span key={`${journal.id}-${index}`} className="mr-3">{entry.accountCode}: D {formatIDR(entry.debit)} / K {formatIDR(entry.credit)}</span>)}</div></div>)}</div>}</section>
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h2 className="font-semibold">Jurnal Terbaru</h2>{loading ? <p className="mt-3 text-sm text-slate-500">Memuat jurnal...</p> : data.journals.length === 0 ? <p className="mt-3 text-sm text-slate-500">Belum ada jurnal terposting.</p> : <div className="mt-3 space-y-2">{data.journals.map(journal => <div key={journal.id} className="border-b border-slate-100 py-2 text-sm dark:border-slate-800"><div className="flex justify-between"><span>{journal.journalNumber} · {journal.description}</span><span>{journal.status}</span></div><div className="mt-1 text-xs text-slate-500">{journal.entries.map((entry, index) => <span key={`${journal.id}-${index}`} className="mr-3">{entry.accountCode}: D {formatIDR(entry.debit)} / K {formatIDR(entry.credit)}</span>)}</div></div>)}</div>}</section>
     </div>
   );
 };
@@ -1232,7 +1179,10 @@ const App = () => {
       await removeCustomer(id);
     }
   };
-  const [features, setFeatures] = useState(mockFeaturesData);
+  const [features, setFeatures] = useState([
+    { id: 'f-pesanan', nama: 'Manajemen Pesanan (Order)', deskripsi: 'Lacak status operasional pesanan (Diproses, Dikirim, Selesai).', aktif: true },
+    { id: 'f-piutang', nama: 'Buku Piutang & Utang', deskripsi: 'Catat pelanggan yang berhutang dan kelola notifikasi jatuh temponya.', aktif: true },
+  ]);
 
   useEffect(() => {
     const release = acquireTabLock();

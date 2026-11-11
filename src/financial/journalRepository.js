@@ -26,9 +26,14 @@ function validateJournalEntry(entry) {
     throw new Error('Journal entry harus memiliki setidaknya satu line item.');
   }
 
-  // Validate account codes exist
+  // Validate account codes and monetary lines.
   entry.entries.forEach(line => {
     validateAccountCode(line.accountCode);
+    const debit = line.debit || 0;
+    const credit = line.credit || 0;
+    if (!Number.isInteger(debit) || !Number.isInteger(credit) || debit < 0 || credit < 0 || !Number.isFinite(debit) || !Number.isFinite(credit) || (debit > 0 && credit > 0)) {
+      throw new Error('Nilai debit dan kredit harus berupa bilangan rupiah bulat valid.');
+    }
   });
 
   // Calculate totals

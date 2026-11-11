@@ -1,6 +1,7 @@
 import { db, initializeDatabase } from '../storage/database';
 import { createJournal, getJournalByIdempotencyKey } from './journalRepository';
 import { reserveSaleStock } from './inventoryEngine';
+import { requireValidAmount } from './transactionValidation';
 
 // Inline posting helper so transaction rules run inside a single atomic Dexie transaction.
 async function postJournalInline(journal) {
@@ -24,8 +25,19 @@ export async function createSale(saleData) {
   await initializeDatabase();
 
   // Validation
-  if (saleData.paidAmount > saleData.totalAmount) {
-    throw new Error('Pembayaran melebihi total tagihan.');
+  if (!Array.isArray(saleData.items) || saleData.items.length === 0) throw new Error('Penjualan harus memiliki barang.');
+  requireValidAmount(saleData.totalAmount, 'Total penjualan');
+  const paidAmount = saleData.paidAmount ?? 0;
+  if (!Number.isInteger(paidAmount) || paidAmount < 0 || paidAmount > saleData.totalAmount) {
+    throw new Error('Pembayaran harus bilangan rupiah bulat antara 0 dan total tagihan.');
+  }
+  for (const item of saleData.items) {
+    if (!Number.isInteger(item.quantity) || item.quantity <= 0 || !Number.isInteger(item.unitPrice) || item.unitPrice < 0 || item.total !== item.quantity * item.unitPrice) {
+      throw new Error('Jumlah dan harga barang tidak valid.');
+    }
+  }
+  if (saleData.items.reduce((sum, item) => sum + item.total, 0) !== saleData.totalAmount) {
+    throw new Error('Total penjualan tidak sesuai dengan total barang.');
   }
 
   const idempotencyKey = saleData.idempotencyKey || `SALE-${saleData.saleNumber}`;
@@ -42,9 +54,9 @@ export async function createSale(saleData) {
     customerId: saleData.customerId,
     items: saleData.items,
     totalAmount: saleData.totalAmount,
-    paidAmount: saleData.paidAmount || 0,
+    paidAmount,
     paymentMethod: saleData.paymentMethod,
-    status: saleData.paidAmount >= saleData.totalAmount ? 'COMPLETED' : 'UNPAID',
+    status: paidAmount >= saleData.totalAmount ? 'COMPLETED' : 'UNPAID',
     createdAt: new Date().toISOString(),
   };
 
@@ -95,18 +107,18 @@ export async function recordPayment(paymentData) {
   }
 
   // Validation
-  if (sale.status === 'COMPLETED') {
-    throw new Error('Tagihan sudah lunas.');
-  }
-  if (paymentData.amount + sale.paidAmount > sale.totalAmount) {
-    throw new Error('Pembayaran melebihi sisa tagihan.');
-  }
-
   const idempotencyKey = paymentData.idempotencyKey || `PAYMENT-${paymentData.paymentNumber}`;
   const existingJournal = await getJournalByIdempotencyKey(idempotencyKey);
   if (existingJournal && existingJournal.status === 'POSTED') {
     const existingPayment = await db.payments.where('journalId').equals(existingJournal.id).first();
     if (existingPayment) return existingPayment;
+  }
+  requireValidAmount(paymentData.amount, 'Pembayaran');
+  if (sale.status === 'COMPLETED') {
+    throw new Error('Tagihan sudah lunas.');
+  }
+  if (paymentData.amount + (sale.paidAmount || 0) > sale.totalAmount) {
+    throw new Error('Pembayaran melebihi sisa tagihan.');
   }
 
   const payment = {
@@ -150,6 +162,7 @@ export async function recordOperatingExpense(expenseData) {
   if (expenseData.amount <= 0) {
     throw new Error('Jumlah beban harus > 0.');
   }
+  requireValidAmount(expenseData.amount, 'Beban');
 
   const idempotencyKey = expenseData.idempotencyKey || `EXPENSE-${expenseData.referenceNumber}`;
   const existingJournal = await getJournalByIdempotencyKey(idempotencyKey);
@@ -179,6 +192,7 @@ export async function recordCapitalContribution(contributionData) {
   if (contributionData.amount <= 0) {
     throw new Error('Jumlah setoran harus > 0.');
   }
+  requireValidAmount(contributionData.amount, 'Setoran modal');
 
   const idempotencyKey = contributionData.idempotencyKey || `CONTRIB-${contributionData.referenceNumber}`;
   const existingJournal = await getJournalByIdempotencyKey(idempotencyKey);
@@ -208,6 +222,7 @@ export async function recordOwnerWithdrawal(withdrawalData) {
   if (withdrawalData.amount <= 0) {
     throw new Error('Jumlah prive harus > 0.');
   }
+  requireValidAmount(withdrawalData.amount, 'Prive');
 
   const idempotencyKey = withdrawalData.idempotencyKey || `WITHDRAW-${withdrawalData.referenceNumber}`;
   const existingJournal = await getJournalByIdempotencyKey(idempotencyKey);
