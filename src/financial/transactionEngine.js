@@ -101,37 +101,34 @@ export async function createSale(saleData) {
 // recordPayment: pembayaran terhadap penjualan
 export async function recordPayment(paymentData) {
   await initializeDatabase();
-
-  const sale = await db.sales.get(paymentData.saleId);
-  if (!sale) {
-    throw new Error(`Sale ${paymentData.saleId} tidak ditemukan.`);
-  }
-
-  // Validation
-  const idempotencyKey = paymentData.idempotencyKey || `PAYMENT-${paymentData.paymentNumber}`;
-  const existingJournal = await getJournalByIdempotencyKey(idempotencyKey);
-  if (existingJournal && existingJournal.status === 'POSTED') {
-    const existingPayment = await db.payments.where('journalId').equals(existingJournal.id).first();
-    if (existingPayment) return existingPayment;
-  }
   requireValidAmount(paymentData.amount, 'Pembayaran');
-  if (sale.status === 'COMPLETED') {
-    throw new Error('Tagihan sudah lunas.');
-  }
-  if (paymentData.amount + (sale.paidAmount || 0) > sale.totalAmount) {
-    throw new Error('Pembayaran melebihi sisa tagihan.');
-  }
-
-  const payment = {
-    id: `PAY-${Date.now()}`,
-    paymentNumber: paymentData.paymentNumber,
-    transactionDate: paymentData.transactionDate,
-    saleId: sale.id,
-    amount: paymentData.amount,
-    createdAt: new Date().toISOString(),
-  };
+  const idempotencyKey = paymentData.idempotencyKey || `PAYMENT-${paymentData.paymentNumber}`;
 
   return await db.transaction('rw', db.journals, db.auditTrail, db.sales, db.payments, async () => {
+    const existingJournal = await db.journals.where('idempotencyKey').equals(idempotencyKey).first();
+    if (existingJournal?.status === 'POSTED') {
+      const existingPayment = await db.payments.where('journalId').equals(existingJournal.id).first();
+      if (!existingPayment) throw new Error('Pembayaran sebelumnya tidak lengkap.');
+      if (existingPayment.saleId !== paymentData.saleId) throw new Error('Nomor pembayaran sudah digunakan untuk invoice lain.');
+      return existingPayment;
+    }
+
+    const sale = await db.sales.get(paymentData.saleId);
+    if (!sale) throw new Error(`Sale ${paymentData.saleId} tidak ditemukan.`);
+    if (sale.status === 'COMPLETED') throw new Error('Tagihan sudah lunas.');
+    if (paymentData.amount + (sale.paidAmount || 0) > sale.totalAmount) {
+      throw new Error('Pembayaran melebihi sisa tagihan.');
+    }
+
+    const payment = {
+      id: `PAY-${Date.now()}`,
+      paymentNumber: paymentData.paymentNumber,
+      transactionDate: paymentData.transactionDate,
+      saleId: sale.id,
+      amount: paymentData.amount,
+      createdAt: new Date().toISOString(),
+    };
+
     const journal = await createJournal({
       journalNumber: `JE-${payment.paymentNumber}`,
       transactionDate: payment.transactionDate,
@@ -148,7 +145,7 @@ export async function recordPayment(paymentData) {
     payment.journalId = journal.id;
     await db.payments.put(payment);
 
-    sale.paidAmount += payment.amount;
+    sale.paidAmount = (sale.paidAmount || 0) + payment.amount;
     sale.status = sale.paidAmount >= sale.totalAmount ? 'COMPLETED' : 'UNPAID';
     await db.sales.put(sale);
 

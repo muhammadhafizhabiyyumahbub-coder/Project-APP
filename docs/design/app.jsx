@@ -13,6 +13,7 @@ import { CustomerOrdersScreen } from './CustomerOrdersScreen.jsx';
 import { listProductCategories, matchesProduct } from '../../src/storage/productSearch.js';
 import { listInvoices } from '../../src/storage/invoiceRepository.js';
 import { recordPayment } from '../../src/financial/transactionEngine.js';
+import { filterPostedJournals, sumAccountBalance } from '../../src/financial/dashboardAggregation.js';
 
 // ==========================================
 // 1. ICONS (SVG Mocks for zero-dependency)
@@ -208,17 +209,10 @@ const DashboardScreen = ({ navigate, products }) => {
     let active = true;
     const load = async () => {
       try {
-        const [kas, bank, pendapatan, beban, hpp, piutang, utang] = await Promise.all([
-          getAccountBalance('1010'),
-          getAccountBalance('1020'),
-          getAccountBalance('4000'),
-          getAccountBalance('5000'),
-          getAccountBalance('5100'),
-          getAccountBalance('1100'),
-          getAccountBalance('2100'),
-        ]);
-        
-        const recentJournals = (await db.journals.where('status').equals('POSTED').toArray()).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 7);
+        const allJournals = await db.journals.toArray();
+        const periodJournals = filterPostedJournals(allJournals, period);
+        const [kas, bank, pendapatan, beban, hpp, piutang, utang] = ['1010', '1020', '4000', '5000', '5100', '1100', '2100'].map(code => sumAccountBalance(periodJournals, code));
+        const recentJournals = periodJournals.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 7);
 
         if (active) {
           setFinancials({ kas, bank, pendapatan, beban, hpp, piutang, utang });
@@ -231,7 +225,7 @@ const DashboardScreen = ({ navigate, products }) => {
     };
     load();
     return () => { active = false; };
-  }, []);
+  }, [period]);
 
   const laba = financials.pendapatan - financials.hpp - financials.beban;
   const visibleJournals = journals.slice(0, 5);
@@ -453,6 +447,7 @@ const PenjualanScreen = ({ products, customers = [], reloadProducts }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [qtyError, setQtyError] = useState(null);
+  const [qtyInputs, setQtyInputs] = useState({});
   
   const categories = listProductCategories(products);
   const filteredProducts = products.filter(p => matchesProduct(p, searchQuery, selectedCategory));
@@ -479,19 +474,43 @@ const PenjualanScreen = ({ products, customers = [], reloadProducts }) => {
   };
 
   const setQty = (id, value) => {
+    setQtyInputs(current => ({ ...current, [id]: value }));
     if (value === '') return;
     const quantity = Number(value);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > cart.find(item => item.id === id)?.stok) {
-      setQtyError('Jumlah harus bilangan bulat dan tidak boleh melebihi stok.');
+    const stock = cart.find(item => item.id === id)?.stok || 0;
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > stock) {
+      setQtyError('Jumlah harus bilangan bulat antara 1 dan stok tersedia.');
       return;
     }
     setQtyError(null);
     setCart(cart.map(item => item.id === id ? { ...item, qty: quantity } : item));
   };
 
+  const commitQty = id => {
+    const value = qtyInputs[id];
+    if (value === '') {
+      setQtyError('Jumlah wajib diisi dan minimal 1.');
+      return;
+    }
+    const quantity = Number(value);
+    const stock = cart.find(item => item.id === id)?.stok || 0;
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > stock) {
+      setQtyError('Jumlah harus bilangan bulat antara 1 dan stok tersedia.');
+      return;
+    }
+    setQtyError(null);
+    setCart(cart.map(item => item.id === id ? { ...item, qty: quantity } : item));
+    setQtyInputs(current => { const next = { ...current }; delete next[id]; return next; });
+  };
+
   const removeFromCart = (id) => setCart(cart.filter(item => item.id !== id));
   
   const handleCheckout = async () => {
+    const invalidItem = cart.find(item => !Number.isInteger(item.qty) || item.qty < 1 || item.qty > item.stok);
+    if (invalidItem) {
+      setQtyError('Periksa jumlah barang: harus bilangan bulat antara 1 dan stok tersedia.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -609,8 +628,9 @@ const PenjualanScreen = ({ products, customers = [], reloadProducts }) => {
                         min="1"
                         max={item.stok}
                         step="1"
-                        value={item.qty}
+                        value={qtyInputs[item.id] ?? item.qty}
                         onChange={event => setQty(item.id, event.target.value)}
+                        onBlur={() => commitQty(item.id)}
                         className="h-11 w-12 bg-transparent text-center text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-slate-100"
                       />
                       <button type="button" aria-label={`Tambah ${item.nama}`} onClick={() => updateQty(item.id, 1)} disabled={item.qty >= item.stok} className="min-h-11 min-w-11 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300 disabled:opacity-30">
