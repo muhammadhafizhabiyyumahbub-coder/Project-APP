@@ -22,7 +22,7 @@ db.version(DATABASE_VERSION).stores({
   features: 'featureId',
   journals: 'id, status, idempotencyKey, reference',
   auditTrail: 'id, entityId, action, reference',
-  sales: 'id, saleNumber, customerId, journalId',
+  sales: 'id, saleNumber, customerId, journalId, transactionDate',
   payments: 'id, paymentNumber, saleId, journalId',
   inventoryMovements: 'id, productId, saleId, transactionDate',
 });

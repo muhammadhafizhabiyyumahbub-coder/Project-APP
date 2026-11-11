@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import App from '../docs/design/app.jsx';
 import ErrorBoundary from './ErrorBoundary';
+import { listFeatures } from './storage/featuresRepository';
+import { db, initializeDatabase } from './storage/database';
 
 const createSaleMock = vi.fn();
 const reloadProductsMock = vi.fn();
@@ -38,8 +40,10 @@ beforeEach(() => {
   reloadProductsMock.mockReset();
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks();
+  await initializeDatabase();
+  await db.features.clear();
 });
 
 describe('application shell', () => {
@@ -163,7 +167,28 @@ describe('application shell', () => {
     const toggle = screen.getAllByRole('button', { name: 'Nonaktifkan Modul' })[0];
     await user.click(toggle);
 
-    expect(JSON.parse(localStorage.getItem('umkm-features'))[0].aktif).toBe(false);
+    await waitFor(async () => {
+      const saved = await listFeatures();
+      const target = saved.find(item => item.featureId === 'f-pesanan');
+      expect(target?.enabled).toBe(false);
+    });
+  });
+
+  it('reactivates a deactivated feature', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getAllByRole('button', { name: 'Tambah Fitur' })[0]);
+
+    const toggle = screen.getAllByRole('button', { name: 'Nonaktifkan Modul' })[0];
+    await user.click(toggle);
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Aktifkan Modul' }).length).toBeGreaterThan(0));
+
+    await user.click(screen.getAllByRole('button', { name: 'Aktifkan Modul' })[0]);
+    await waitFor(async () => {
+      const saved = await listFeatures();
+      const target = saved.find(item => item.featureId === 'f-pesanan');
+      expect(target?.enabled).toBe(true);
+    });
   });
 
   it('persists theme toggle', async () => {

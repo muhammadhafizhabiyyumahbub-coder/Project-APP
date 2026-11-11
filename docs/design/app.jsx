@@ -2,9 +2,15 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useProducts } from '../../src/hooks/useProducts.js';
 import { useCustomers } from '../../src/hooks/useCustomers.js';
 import { db, initializeDatabase } from '../../src/storage/database.js';
+import { exportBackup, importBackup } from '../../src/storage/backupRepository.js';
 import { listFeatures, saveFeature } from '../../src/storage/featuresRepository.js';
+import { acquireTabLock } from '../../src/storage/tabCoordination.js';
+import { checkStorageQuota, onStorageWarning } from '../../src/storage/storageMonitor.js';
 import { getAccountBalance } from '../../src/financial/financialEngine.js';
 import { recordOperatingExpense, recordCapitalContribution, recordOwnerWithdrawal, createSale } from '../../src/financial/transactionEngine.js';
+import { InventoryScreen } from './InventoryScreen.jsx';
+import { CustomerOrdersScreen } from './CustomerOrdersScreen.jsx';
+import { ReceivablesScreen } from './ReceivablesScreen.jsx';
 
 // ==========================================
 // 1. ICONS (SVG Mocks for zero-dependency)
@@ -477,12 +483,13 @@ const DashboardScreen = ({ navigate, products }) => {
 };
 
 // --- PENJUALAN (POS) SCREEN ---
-const PenjualanScreen = ({ products, reloadProducts }) => {
+const PenjualanScreen = ({ products, customers = [], reloadProducts }) => {
   const [cart, setCart] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [isCheckoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('Tunai');
+  const [customerId, setCustomerId] = useState('WALK-IN');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   
@@ -537,7 +544,7 @@ const PenjualanScreen = ({ products, reloadProducts }) => {
       await createSale({
         saleNumber,
         transactionDate: new Date().toISOString().slice(0, 10),
-        customerId: 'WALK-IN',
+        customerId,
         items: cart.map(item => ({
           productId: item.id,
           quantity: item.qty,
@@ -679,6 +686,12 @@ const PenjualanScreen = ({ products, reloadProducts }) => {
             <span className="font-medium text-slate-600 dark:text-slate-300">Total Tagihan</span>
             <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatIDR(total)}</span>
           </div>
+          <Select 
+            label="Pelanggan"
+            options={[{ value: 'WALK-IN', label: 'Pelanggan umum' }, ...customers.map(customer => ({ value: customer.id, label: customer.nama }))]}
+            value={customerId}
+            onChange={(e) => setCustomerId(e.target.value)}
+          />
           <Select 
             label="Metode Pembayaran" 
             options={['Tunai', 'Transfer Bank', 'QRIS', 'Kredit (Piutang)']} 
@@ -835,7 +848,7 @@ const ProdukScreen = ({ products, onSaveProduct, onDeleteProduct }) => {
 };
 
 // --- PELANGGAN SCREEN ---
-const PelangganScreen = ({ customers, onSaveCustomer, onDeleteCustomer }) => {
+const PelangganScreen = ({ customers, onSaveCustomer, onDeleteCustomer, onViewOrders }) => {
   const [isModalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -914,7 +927,8 @@ const PelangganScreen = ({ customers, onSaveCustomer, onDeleteCustomer }) => {
                     <td className="px-5 py-3 text-slate-600 dark:text-slate-400 text-xs">{c.email || '-'}</td>
                     <td className="px-5 py-3 text-slate-600 dark:text-slate-400 text-xs">{c.alamat || '-'}</td>
                     <td className="px-5 py-3 text-center">
-                      <Button variant="ghost" className="text-blue-600 dark:text-blue-400" onClick={() => openCustomerForm(c)}>Edit</Button>
+                      <Button variant="ghost" className="text-slate-600 dark:text-slate-300" onClick={() => onViewOrders?.(c.id)}>Pesanan</Button>
+                      <Button variant="ghost" className="text-blue-600 dark:text-blue-400 ml-2" onClick={() => openCustomerForm(c)}>Edit</Button>
                       <Button variant="ghost" className="text-rose-600 dark:text-rose-400 ml-2" onClick={() => onDeleteCustomer(c.id)}>Hapus</Button>
                     </td>
                   </tr>
@@ -1071,14 +1085,70 @@ const FinancialScreen = () => {
   );
 };
 
+const ReportsScreen = () => {
+  const [balances, setBalances] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    initializeDatabase().then(async () => {
+      const codes = ['1010', '1100', '4000', '5000', '5100'];
+      const values = await Promise.all(codes.map(async code => [code, await getAccountBalance(code)]));
+      if (active) setBalances(Object.fromEntries(values));
+    }).catch(() => {
+      if (active) setError('Laporan gagal dimuat.');
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
+
+  if (loading) return <p className="text-sm text-slate-500">Memuat laporan...</p>;
+  if (error) return <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>;
+
+  const laba = balances['4000'] - balances['5000'] - balances['5100'];
+  return (
+    <div className="space-y-6">
+      <div><h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Laporan Bisnis</h1><p className="mt-1 text-sm text-slate-500">Ringkasan berdasarkan jurnal terposting.</p></div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[['Pendapatan', '4000'], ['Beban', '5000'], ['HPP', '5100'], ['Laba/Rugi', null]].map(([label, code]) => (
+          <Card key={label}><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-xl font-bold">{formatIDR(code ? balances[code] : laba)}</p></Card>
+        ))}
+      </div>
+      <Card><h2 className="font-semibold">Posisi Kas dan Piutang</h2><div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"><div><p className="text-sm text-slate-500">Kas</p><p className="text-lg font-semibold">{formatIDR(balances['1010'])}</p></div><div><p className="text-sm text-slate-500">Piutang</p><p className="text-lg font-semibold">{formatIDR(balances['1100'])}</p></div></div></Card>
+    </div>
+  );
+};
+
+const SettingsScreen = () => {
+  const [message, setMessage] = useState(null);
+  const [error, setError] = useState(null);
+  const restore = async event => {
+    const file = event.target.files?.[0];
+    if (!file || !window.confirm('Restore akan mengganti semua data saat ini. Lanjutkan?')) return;
+    setError(null);
+    try {
+      await importBackup(JSON.parse(await file.text()));
+      setMessage('Restore selesai. Muat ulang aplikasi untuk melihat data.');
+    } catch (err) { setError(err.message || 'Restore gagal.'); }
+    finally { event.target.value = ''; }
+  };
+  const backup = async () => {
+    const content = JSON.stringify(await exportBackup(), null, 2);
+    const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `umkm-manager-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setMessage('Backup diunduh.');
+  };
+  return <div className="space-y-6"><div><h1 className="text-2xl font-semibold">Backup & Restore</h1><p className="mt-1 text-sm text-slate-500">Simpan salinan data lokal sebelum pindah perangkat atau browser.</p></div>{message && <div role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{message}</div>}{error && <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}<Card className="space-y-4"><div><h2 className="font-semibold">Backup data</h2><p className="mt-1 text-sm text-slate-500">Unduh seluruh data aplikasi dalam file JSON.</p></div><Button onClick={backup}>Unduh backup</Button></Card><Card className="space-y-4"><div><h2 className="font-semibold">Restore data</h2><p className="mt-1 text-sm text-slate-500">File valid akan mengganti seluruh data aplikasi saat ini.</p></div><input aria-label="Pilih file backup" type="file" accept="application/json,.json" onChange={restore} /></Card></div>;
+};
+
 const PlaceholderScreen = ({ title, description }) => (
-  <Card className="h-full flex items-center justify-center min-h-[60vh]">
-    <EmptyState 
-      icon="Grid" 
-      title={title} 
-      description={description || "Layar ini merupakan bagian dari purwarupa. Data belum disambungkan ke fungsi ini."} 
-    />
-  </Card>
+  <Card className="h-full flex items-center justify-center min-h-[60vh]"><EmptyState icon="Grid" title={title} description={description || "Layar ini merupakan bagian dari purwarupa. Data belum disambungkan ke fungsi ini."} /></Card>
 );
 
 
@@ -1132,6 +1202,9 @@ const App = () => {
     removeCustomer,
   } = useCustomers();
 
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+  const [storageWarning, setStorageWarning] = useState(null);
+
   const handleSaveProduct = async (product, editingProduct) => {
     if (editingProduct) {
       await updateProduct(product.id, product);
@@ -1160,6 +1233,15 @@ const App = () => {
     }
   };
   const [features, setFeatures] = useState(mockFeaturesData);
+
+  useEffect(() => {
+    const release = acquireTabLock();
+    return release;
+  }, []);
+
+  useEffect(() => {
+    return onStorageWarning(setStorageWarning);
+  }, []);
 
   useEffect(() => {
     listFeatures().then(saved => {
@@ -1235,7 +1317,7 @@ const App = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <DashboardScreen navigate={setActiveTab} products={products} />;
-      case 'penjualan': return <PenjualanScreen products={products} reloadProducts={reloadProducts} />;
+      case 'penjualan': return <PenjualanScreen products={products} customers={customers} reloadProducts={reloadProducts} />;
       case 'produk': return (
         <>
           {productsError && (
@@ -1255,8 +1337,11 @@ const App = () => {
       );
       case 'fitur': return <TambahFiturScreen features={features} toggleFeature={toggleFeature} />;
       case 'keuangan': return <FinancialScreen />;
-      case 'persediaan': return <PlaceholderScreen title="Modul Persediaan (Inventory)" description="Riwayat pergerakan stok, stok opname, dan pembelian ke supplier." />;
+      case 'persediaan': return <InventoryScreen />;
       case 'pelanggan': return (
+        selectedCustomerId ? (
+          <CustomerOrdersScreen customerId={selectedCustomerId} onBack={() => setSelectedCustomerId(null)} />
+        ) : (
         <>
           {customersError && (
             <div role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
@@ -1269,14 +1354,15 @@ const App = () => {
           {customersLoading ? (
             <div className="p-6 text-sm text-slate-500">Memuat pelanggan...</div>
           ) : (
-            <PelangganScreen customers={customers} onSaveCustomer={handleSaveCustomer} onDeleteCustomer={handleDeleteCustomer} />
+            <PelangganScreen customers={customers} onSaveCustomer={handleSaveCustomer} onDeleteCustomer={handleDeleteCustomer} onViewOrders={setSelectedCustomerId} />
           )}
         </>
+        )
       );
       case 'pesanan': return <PlaceholderScreen title="Manajemen Pesanan" description="Pantau operasional pesanan (Menunggu diproses, Sedang dikemas, Selesai)." />;
-      case 'piutang': return <PlaceholderScreen title="Buku Piutang & Utang" description="Kelola daftar piutang pelanggan dan hutang ke supplier." />;
-      case 'laporan': return <PlaceholderScreen title="Laporan Bisnis" description="Laporan Laba Rugi sederhana, Arus Kas, dan Tren Penjualan." />;
-      case 'pengaturan': return <PlaceholderScreen title="Pengaturan Aplikasi" description="Atur profil bisnis, mata uang, dan backup data lokal (Offline-first)." />;
+      case 'piutang': return <ReceivablesScreen customers={customers} />;
+      case 'laporan': return <ReportsScreen />;
+      case 'pengaturan': return <SettingsScreen />;
       default: return <DashboardScreen navigate={setActiveTab} products={products} />;
     }
   };
@@ -1403,6 +1489,17 @@ const App = () => {
           {/* Page Content */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 custom-scrollbar">
             <div className="max-w-7xl mx-auto pb-10">
+              {storageWarning && (
+                <div role="alert" className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-4 flex items-start gap-3">
+                  <Icon name="AlertTriangle" className="w-5 h-5 text-amber-500 mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-200">Kapasitas Penyimpanan Hampir Penuh</h3>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                      Penyimpanan browser terpakai {storageWarning.usagePercent.toFixed(1)}%. Segera lakukan backup dan bersihkan data lama agar aplikasi tetap berjalan lancar.
+                    </p>
+                  </div>
+                </div>
+              )}
               {renderContent()}
             </div>
           </div>
@@ -1420,4 +1517,5 @@ const App = () => {
   );
 };
 
+export { Card, Button, Badge, Icon };
 export default App;
