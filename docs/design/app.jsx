@@ -54,11 +54,6 @@ const Icon = ({ name, className = "w-5 h-5", strokeWidth = 2 }) => {
 const formatIDR = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
 const todayStr = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 
-const mockFeaturesData = [
-  { id: 'f-pesanan', nama: 'Manajemen Pesanan (Order)', deskripsi: 'Lacak status operasional pesanan (Diproses, Dikirim, Selesai).', aktif: true },
-  { id: 'f-piutang', nama: 'Buku Piutang & Utang', deskripsi: 'Catat pelanggan yang berhutang dan kelola notifikasi jatuh temponya.', aktif: true },
-];
-
 // ==========================================
 // 3. REUSABLE UI COMPONENTS
 // ==========================================
@@ -221,7 +216,7 @@ const DashboardScreen = ({ navigate, products }) => {
           getAccountBalance('2100'),
         ]);
         
-        const recentJournals = (await db.journals.toArray()).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 5);
+        const recentJournals = (await db.journals.where('status').equals('POSTED').toArray()).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 5);
 
         if (active) {
           setFinancials({ kas, bank, pendapatan, beban, hpp, piutang, utang });
@@ -418,7 +413,9 @@ const DashboardScreen = ({ navigate, products }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {journals.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan="4" className="px-5 py-6 text-center text-slate-500">Memuat transaksi...</td></tr>
+              ) : journals.length === 0 ? (
                 <tr><td colSpan="4" className="px-5 py-6 text-center text-slate-500">Belum ada transaksi tersimpan.</td></tr>
               ) : journals.map(journal => {
                 const amount = journal.entries.reduce((sum, entry) => sum + (entry.debit || 0), 0);
