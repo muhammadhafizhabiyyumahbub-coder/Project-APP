@@ -216,7 +216,7 @@ const DashboardScreen = ({ navigate, products }) => {
           getAccountBalance('2100'),
         ]);
         
-        const recentJournals = (await db.journals.where('status').equals('POSTED').toArray()).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 5);
+        const recentJournals = (await db.journals.where('status').equals('POSTED').toArray()).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 7);
 
         if (active) {
           setFinancials({ kas, bank, pendapatan, beban, hpp, piutang, utang });
@@ -232,6 +232,7 @@ const DashboardScreen = ({ navigate, products }) => {
   }, []);
 
   const laba = financials.pendapatan - financials.hpp - financials.beban;
+  const visibleJournals = journals.slice(0, 5);
   const inventoryLow = products?.filter(p => p.stok > 0 && p.stok <= 5).length || 0;
   const inventoryOut = products?.filter(p => p.stok <= 0).length || 0;
 
@@ -339,13 +340,18 @@ const DashboardScreen = ({ navigate, products }) => {
             </div>
           </div>
           <div className="flex-1 min-h-[200px] flex items-end justify-between gap-2 px-2 pb-2">
-            {[40, 60, 45, 80, 50, 90, 75].map((height, i) => (
-              <div key={i} className="w-full bg-blue-100 dark:bg-slate-800 rounded-t-sm relative group hover:bg-blue-200 dark:hover:bg-slate-700 transition-colors" style={{ height: `${height}%` }}>
+            {journals.length === 0 ? (
+              <p className="m-auto text-sm text-slate-500">Belum ada penjualan terposting.</p>
+            ) : journals.slice(0, 7).reverse().map(journal => {
+              const amount = journal.entries.find(entry => entry.accountCode === '4000')?.credit || 0;
+              const maxAmount = Math.max(...journals.slice(0, 7).map(item => item.entries.find(entry => entry.accountCode === '4000')?.credit || 0), 1);
+              const height = Math.max((amount / maxAmount) * 100, 4);
+              return <div key={journal.id} className="w-full bg-blue-100 dark:bg-slate-800 rounded-t-sm relative group hover:bg-blue-200 dark:hover:bg-slate-700 transition-colors" style={{ height: `${height}%` }}>
                 <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                  {formatIDR(height * 25000)}
+                  {formatIDR(amount)}
                 </div>
-              </div>
-            ))}
+              </div>;
+            })}
           </div>
           <div className="flex justify-between mt-2 text-xs text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-2 px-2">
             <span>Awal {period}</span>
@@ -417,7 +423,7 @@ const DashboardScreen = ({ navigate, products }) => {
                 <tr><td colSpan="4" className="px-5 py-6 text-center text-slate-500">Memuat transaksi...</td></tr>
               ) : journals.length === 0 ? (
                 <tr><td colSpan="4" className="px-5 py-6 text-center text-slate-500">Belum ada transaksi tersimpan.</td></tr>
-              ) : journals.map(journal => {
+              ) : visibleJournals.map(journal => {
                 const amount = journal.entries.reduce((sum, entry) => sum + (entry.debit || 0), 0);
                 return <tr key={journal.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="px-5 py-3 text-slate-500 dark:text-slate-400">{journal.transactionDate}</td>
