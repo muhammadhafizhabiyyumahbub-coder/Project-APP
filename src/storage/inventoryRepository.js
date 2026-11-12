@@ -1,4 +1,5 @@
 import { db, initializeDatabase } from './database';
+import { createId } from './idGenerator';
 
 export async function listInventoryMovements({ productId, limit = 100 } = {}) {
   await initializeDatabase();
@@ -26,7 +27,7 @@ export async function recordStockAdjustment({ productId, quantity, reason, trans
     product.stok = newStock;
     await db.products.put(product);
     await db.inventoryMovements.put({
-      id: `ADJ-${Date.now()}`,
+      id: createId('ADJ'),
       productId,
       quantity,
       unitCost: product.hpp || 0,

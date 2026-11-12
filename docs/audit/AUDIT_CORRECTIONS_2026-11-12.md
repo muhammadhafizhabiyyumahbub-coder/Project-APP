@@ -80,7 +80,15 @@ Product search (`productSearch.js`) matches name and SKU case-insensitively; cat
 
 **Evidence:** 2 date-key tests cover padded dates and early local morning; full suite passes.
 
+## P.11 Timestamp-based ID Collision — FIXED (2026-11-12, follow-up)
+
+**Was:** Sale, payment, journal, stock-in, and stock-adjustment IDs used `Date.now()`. Two operations in the same millisecond could overwrite the same IndexedDB primary key.
+
+**Now:** Added `createId(prefix)`, using `crypto.randomUUID()` where available and a timestamp-plus-random fallback. Replaced timestamp-only IDs at all identified production call sites. No schema change; IDs remain strings with existing entity prefixes.
+
+**Evidence:** 100 IDs generated under a frozen timestamp are distinct; transaction and inventory engine tests pass.
+
 ## Validation
 
-- `npm test`: 86 tests, 18 files, exit code 0 (verified via `cmd /c`).
+- `npm test`: 87 tests, 19 files, exit code 0 (verified via `cmd /c`).
 - `npm run build`: pass (vite, 55 modules).

@@ -2,6 +2,7 @@ import { db, initializeDatabase } from '../storage/database';
 import { createJournal, getJournalByIdempotencyKey } from './journalRepository';
 import { reserveSaleStock } from './inventoryEngine';
 import { requireValidAmount } from './transactionValidation';
+import { createId } from '../storage/idGenerator';
 
 // Inline posting helper so transaction rules run inside a single atomic Dexie transaction.
 async function postJournalInline(journal) {
@@ -48,7 +49,7 @@ export async function createSale(saleData) {
   }
 
   const sale = {
-    id: `SALE-${Date.now()}`,
+    id: createId('SALE'),
     saleNumber: saleData.saleNumber,
     transactionDate: saleData.transactionDate,
     customerId: saleData.customerId,
@@ -121,7 +122,7 @@ export async function recordPayment(paymentData) {
     }
 
     const payment = {
-      id: `PAY-${Date.now()}`,
+      id: createId('PAY'),
       paymentNumber: paymentData.paymentNumber,
       transactionDate: paymentData.transactionDate,
       saleId: sale.id,

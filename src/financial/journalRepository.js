@@ -1,5 +1,6 @@
 import { db, initializeDatabase } from '../storage/database';
 import { validateAccountCode } from './accounts';
+import { createId } from '../storage/idGenerator';
 
 // Journal entry structure:
 // {
@@ -54,7 +55,7 @@ export async function createJournal(journalData) {
   await initializeDatabase();
   
   const journal = {
-    id: journalData.id || `J${Date.now()}`,
+    id: journalData.id || createId('J'),
     journalNumber: journalData.journalNumber,
     transactionDate: journalData.transactionDate,
     description: journalData.description || '',
@@ -157,7 +158,7 @@ export async function reverseJournal(journalId, reason = '') {
   }
 
   const reverseJournal = {
-    id: `J${Date.now()}`,
+    id: createId('J'),
     journalNumber: `REV-${original.journalNumber}`,
     transactionDate: new Date().toISOString().split('T')[0],
     description: `Reversal: ${original.description}`,

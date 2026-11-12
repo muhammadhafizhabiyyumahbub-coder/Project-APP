@@ -1,4 +1,5 @@
 import { db, initializeDatabase } from '../storage/database';
+import { createId } from '../storage/idGenerator';
 import { getProduct } from '../storage/productRepository';
 
 export async function recordStockIn({ productId, quantity, unitCost, transactionDate }) {
@@ -19,7 +20,7 @@ export async function recordStockIn({ productId, quantity, unitCost, transaction
   await db.transaction('rw', db.products, db.inventoryMovements, async () => {
     await db.products.put(product);
     await db.inventoryMovements.put({
-      id: `STOCK-IN-${Date.now()}`,
+      id: createId('STOCK-IN'),
       productId,
       quantity,
       unitCost,
