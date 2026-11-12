@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { listSales } from '../../src/storage/salesRepository.js';
 import { recordPayment } from '../../src/financial/transactionEngine.js';
+import { toLocalDateKey } from '../../src/financial/dateKey.js';
 import { Card, Button } from './app.jsx';
 
 const formatIDR = (amount) => new Intl.NumberFormat('id-ID', {
@@ -47,7 +48,7 @@ export function ReceivablesScreen({ customers = [] }) {
         saleId: selectedSale.id,
         amount: value,
         paymentNumber: `PAY-${Date.now()}`,
-        transactionDate: new Date().toISOString().slice(0, 10),
+        transactionDate: toLocalDateKey(new Date()),
       });
       setSelectedSale(null);
       setAmount('');

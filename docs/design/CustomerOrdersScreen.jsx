@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getSalesByCustomer, getSalesStats } from '../../src/storage/salesRepository.js';
 import { getCustomer } from '../../src/storage/customerRepository.js';
 import { recordPayment } from '../../src/financial/transactionEngine.js';
+import { toLocalDateKey } from '../../src/financial/dateKey.js';
 import { Card, Badge, Button } from './app.jsx';
 
 function formatIDR(amount) {
@@ -65,7 +66,7 @@ export function CustomerOrdersScreen({ customerId, onBack }) {
         saleId: paymentSale.id,
         amount,
         paymentNumber: `PAY-${Date.now()}`,
-        transactionDate: new Date().toISOString().slice(0, 10),
+        transactionDate: toLocalDateKey(new Date()),
       });
       const [salesData, statsData] = await Promise.all([
         getSalesByCustomer(customerId, 50),

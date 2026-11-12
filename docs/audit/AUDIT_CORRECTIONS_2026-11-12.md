@@ -72,7 +72,15 @@ Product search (`productSearch.js`) matches name and SKU case-insensitively; cat
 
 **Evidence:** new test `rolls back fully when a restored row fails mid-way` inserts a customer row without a primary key; import rejects and `C001` is still present. Suite: 84 tests, 17 files, exit 0.
 
+## P.10 Local Transaction Date — FIXED (2026-11-12, follow-up)
+
+**Was:** UI transaction dates and dashboard period boundaries used `toISOString().slice(0, 10)`, which is UTC-based. Around local midnight, a transaction could be stored under the previous or next business date.
+
+**Now:** Added `src/financial/dateKey.js` with `toLocalDateKey()`. POS, finance, receivables, customer payments, invoice overdue checks, and dashboard period ranges use local calendar dates. Existing stored ISO date keys remain compatible.
+
+**Evidence:** 2 date-key tests cover padded dates and early local morning; full suite passes.
+
 ## Validation
 
-- `npm test`: 84 tests, 17 files, Vitest exit code 0 (verified via `cmd /c`).
+- `npm test`: 86 tests, 18 files, exit code 0 (verified via `cmd /c`).
 - `npm run build`: pass (vite, 55 modules).

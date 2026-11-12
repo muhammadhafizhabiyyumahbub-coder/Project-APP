@@ -1,14 +1,14 @@
+import { toLocalDateKey } from './dateKey';
+
 export function getPeriodRange(period, today = new Date()) {
-  const day = today.toISOString().slice(0, 10);
-  const [year, month, date] = day.split('-').map(Number);
-  const end = new Date(Date.UTC(year, month - 1, date));
+  const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const start = new Date(end);
   if (period === 'Hari Ini') {
     // same day
-  } else if (period === '7 Hari Terakhir') start.setUTCDate(start.getUTCDate() - 6);
-  else if (period === 'Tahun Ini') start.setUTCMonth(0, 1);
-  else start.setUTCDate(1);
-  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  } else if (period === '7 Hari Terakhir') start.setDate(start.getDate() - 6);
+  else if (period === 'Tahun Ini') start.setMonth(0, 1);
+  else start.setDate(1);
+  return { start: toLocalDateKey(start), end: toLocalDateKey(end) };
 }
 
 export function filterPostedJournals(journals, period, today = new Date()) {

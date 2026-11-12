@@ -1,4 +1,5 @@
 import { db, initializeDatabase } from './database';
+import { toLocalDateKey } from '../financial/dateKey';
 
 export async function listInvoices({ customerId, status, limit = 100 } = {}) {
   await initializeDatabase();
@@ -20,7 +21,7 @@ export async function getInvoice(id) {
 
 export function getInvoiceStatus(invoice, today = new Date()) {
   if (invoice.paidAmount >= invoice.totalAmount) return 'PAID';
-  if (invoice.dueDate && new Date(invoice.dueDate) < today) return 'OVERDUE';
+  if (invoice.dueDate && invoice.dueDate.slice(0, 10) < toLocalDateKey(today)) return 'OVERDUE';
   if (invoice.paidAmount > 0) return 'PARTIAL';
   return 'UNPAID';
 }

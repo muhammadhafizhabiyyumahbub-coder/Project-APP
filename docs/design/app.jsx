@@ -14,6 +14,7 @@ import { listProductCategories, matchesProduct } from '../../src/storage/product
 import { listInvoices } from '../../src/storage/invoiceRepository.js';
 import { recordPayment } from '../../src/financial/transactionEngine.js';
 import { filterPostedJournals, sumAccountBalance } from '../../src/financial/dashboardAggregation.js';
+import { toLocalDateKey } from '../../src/financial/dateKey.js';
 
 // ==========================================
 // 1. ICONS (SVG Mocks for zero-dependency)
@@ -520,7 +521,7 @@ const PenjualanScreen = ({ products, customers = [], reloadProducts }) => {
       
       await createSale({
         saleNumber,
-        transactionDate: new Date().toISOString().slice(0, 10),
+        transactionDate: toLocalDateKey(new Date()),
         customerId,
         items: cart.map(item => ({
           productId: item.id,
@@ -1012,7 +1013,7 @@ const FinancialScreen = () => {
     try {
       await handler({
         referenceNumber: `${prefix}-${Date.now()}`,
-        transactionDate: new Date().toISOString().slice(0, 10),
+        transactionDate: toLocalDateKey(new Date()),
         amount,
         description: form.description || undefined,
       });
@@ -1155,7 +1156,7 @@ const ReceivablesScreen = ({ customers }) => {
     }
     try {
       const amount = parseInt(paymentForm.amount, 10);
-      await recordPayment({ saleId: paymentForm.saleId, paymentNumber: paymentForm.paymentNumber, transactionDate: new Date().toISOString().split('T')[0], amount });
+      await recordPayment({ saleId: paymentForm.saleId, paymentNumber: paymentForm.paymentNumber, transactionDate: toLocalDateKey(new Date()), amount });
       setPaymentSuccess('Pembayaran tercatat.');
       setPaymentForm({ saleId: '', amount: '', paymentNumber: '' });
       setInvoices(await listInvoices({ customerId: selectedCustomerId, limit: 500 }));
