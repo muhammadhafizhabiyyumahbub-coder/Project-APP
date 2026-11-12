@@ -25,4 +25,14 @@ describe('backup repository', () => {
     await expect(importBackup({ manifest: { format: 'UMKM_MANAGER_BACKUP', formatVersion: 1 }, tables: {} })).rejects.toThrow('Data tabel');
     await expect(getCustomer('C001')).resolves.toMatchObject({ nama: 'Tetap Ada' });
   });
+
+  it('rolls back fully when a restored row fails mid-way', async () => {
+    await saveCustomer({ id: 'C001', nama: 'Tetap Ada' });
+
+    const backup = await exportBackup();
+    backup.tables.customers.push({ nama: 'tanpa id' });
+
+    await expect(importBackup(backup)).rejects.toBeTruthy();
+    await expect(getCustomer('C001')).resolves.toMatchObject({ nama: 'Tetap Ada' });
+  });
 });

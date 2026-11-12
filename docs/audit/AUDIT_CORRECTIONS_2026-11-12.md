@@ -62,7 +62,17 @@ Product search (`productSearch.js`) matches name and SKU case-insensitively; cat
 - `BUSINESS_DECISION_REGISTER.md`: unchanged — no pending decision was converted to approved.
 - Historical audit reports left intact. Corrections recorded in this dated addendum.
 
+## P.9 Backup/Restore Atomicity — FIXED (2026-11-12, follow-up)
+
+**Was:** `exportBackup()` read each table in its own implicit transaction, so concurrent writes could produce a mixed snapshot. `importBackup()` ran restore in one transaction but then, on failure, started a *second* transaction that cleared all tables and re-wrote a snapshot taken before the restore. That second write could fail part-way or overwrite data written by another tab after the snapshot.
+
+**Now:** Export reads every table inside one read transaction. Import runs a single read-write transaction; Dexie aborts and rolls back automatically when any row fails, so the previous data stays as it was. The compensating second transaction was removed.
+
+**Files:** `src/storage/backupRepository.js`, `src/storage/backupRepository.test.js`.
+
+**Evidence:** new test `rolls back fully when a restored row fails mid-way` inserts a customer row without a primary key; import rejects and `C001` is still present. Suite: 84 tests, 17 files, exit 0.
+
 ## Validation
 
-- `npm test`: 83 tests, 17 files; Vitest reports all tests passed, but command exits non-zero because `src/main.test.jsx` intentionally renders a component that throws (`Broken`) to verify ErrorBoundary. This is existing test-runner behavior, not a product test failure.
+- `npm test`: 84 tests, 17 files, Vitest exit code 0 (verified via `cmd /c`).
 - `npm run build`: pass (vite, 55 modules).

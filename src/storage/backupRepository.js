@@ -5,8 +5,8 @@ export const BACKUP_FORMAT_VERSION = 1;
 
 export async function exportBackup() {
   await initializeDatabase();
-  const tables = Object.fromEntries(await Promise.all(
-    db.tables.map(async table => [table.name, await table.toArray()])
+  const tables = await db.transaction('r', db.tables, async () => Object.fromEntries(
+    await Promise.all(db.tables.map(async table => [table.name, await table.toArray()]))
   ));
   return {
     manifest: {
@@ -32,21 +32,11 @@ function validateBackup(backup) {
 export async function importBackup(backup) {
   await initializeDatabase();
   validateBackup(backup);
-  const snapshot = await exportBackup();
-  try {
-    await db.transaction('rw', db.tables, async () => {
-      for (const table of db.tables) {
-        await table.clear();
-        await table.bulkAdd(backup.tables[table.name]);
-      }
-    });
-  } catch (error) {
-    await db.transaction('rw', db.tables, async () => {
-      for (const table of db.tables) {
-        await table.clear();
-        await table.bulkAdd(snapshot.tables[table.name]);
-      }
-    });
-    throw error;
-  }
+  // Dexie rolls back the whole transaction if any table write fails, so original data stays intact.
+  await db.transaction('rw', db.tables, async () => {
+    for (const table of db.tables) {
+      await table.clear();
+      await table.bulkAdd(backup.tables[table.name]);
+    }
+  });
 }

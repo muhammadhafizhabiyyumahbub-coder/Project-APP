@@ -86,11 +86,11 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 
 | Test Category | Result | Evidence |
 |---|---|---|
-| Unit | Pass | 83 pass (17 files) |
-| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity, payment idempotency, dashboard period filtering |
+| Unit | Pass | 84 pass (17 files) |
+| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity, payment idempotency, dashboard period filtering, backup rollback |
 | E2E | Pass | POS checkout, Dashboard balances, Financial screen, Product screen UI tests |
 | Build | Pass | `npm run build` passes, dist/ generated |
-| Regression | Pass | 83 tests |
+| Regression | Pass | 84 tests |
 | Manual application verification | Not Run | App runs in browser via `npm run dev` |
 | Offline behavior | Pass | IndexedDB storage tests |
 | Data integrity | Pass | Journal balancing, rollback, atomic sale+stock, single journal per sale verified |
@@ -103,7 +103,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 |---|---|---|---|
 | ISSUE-001 | Resolved | No runnable application or persistence implementation exists. | Phase 1-3 completed; app runs with IndexedDB |
 | ISSUE-002 | Resolved | Financial/accounting decisions are not approved. | Double-entry, accrual, weighted average HPP implemented |
-| ISSUE-003 | Critical | Backup/restore has no executable verification. | Not Started |
+| ISSUE-003 | Critical | Backup/restore has no executable verification. | Partly resolved: automated export/import plus failed-restore rollback tests pass; manual cross-device restore not run |
 | ISSUE-004 | Medium | V1 scope is broader in PRD than conditional recommendation. | Partial completion; single-device offline-first V1 functional |
 | ISSUE-005 | Resolved | Source, package, build, API, database, and test infrastructure absent. | Phase 1-3 completed |
 | ISSUE-006 | Resolved | UI/UX and Design System required consolidation and implementation validation. | Responsive UI with light/dark mode implemented |
