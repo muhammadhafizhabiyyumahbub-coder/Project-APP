@@ -12,10 +12,10 @@
 |---|---|
 | Product Version | V1 draft |
 | Development Model | Offline-First, Local-First |
-| Current Phase | Phase 6, Customers, Orders & Sales |
+| Current Phase | Phase 7, Invoices & Receivables |
 | Current Status | Completed |
 | Approved Phase | Phase 6 |
-| Next Action | Phase 7 Invoices & Receivables |
+| Next Action | Phase 8 Business Operations (pending owner approval) |
 | Release Status | Not Released |
 
 Status reflects repository evidence. Documentation is not implementation evidence.
@@ -31,7 +31,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | 4 | Feature Module System | Completed |
 | 5 | Products & Inventory | Completed |
 | 6 | Customers, Orders & Sales | Completed |
-| 7 | Invoices & Receivables | Not Started |
+| 7 | Invoices & Receivables | Completed |
 | 8 | Business Operations | Not Started |
 | 9 | Reports & Dashboard | Completed |
 | 10 | Backup & Restore | Completed |
@@ -86,11 +86,11 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 
 | Test Category | Result | Evidence |
 |---|---|---|
-| Unit | Pass | 53 pass (10 files) |
-| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity tests |
+| Unit | Pass | 80 pass (17 files) |
+| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity, payment idempotency, dashboard period filtering |
 | E2E | Pass | POS checkout, Dashboard balances, Financial screen, Product screen UI tests |
 | Build | Pass | `npm run build` passes, dist/ generated |
-| Regression | Pass | 53 tests |
+| Regression | Pass | 80 tests |
 | Manual application verification | Not Run | App runs in browser via `npm run dev` |
 | Offline behavior | Pass | IndexedDB storage tests |
 | Data integrity | Pass | Journal balancing, rollback, atomic sale+stock, single journal per sale verified |

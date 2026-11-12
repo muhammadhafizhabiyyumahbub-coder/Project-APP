@@ -117,6 +117,71 @@ describe('Transaction Engine - Sales and Payments', () => {
   });
 });
 
+describe('Transaction Engine - Payment Idempotency', () => {
+  it('retrying same payment number returns same payment without duplicate journal', async () => {
+    const sale = await createSale({
+      saleNumber: 'INV-PAY-001',
+      transactionDate: '2026-11-10',
+      customerId: 'CUST-001',
+      items: [{ productId: 'P001', quantity: 1, unitPrice: 50000, total: 50000 }],
+      totalAmount: 50000,
+      paymentMethod: 'CREDIT',
+      paidAmount: 0,
+    });
+
+    const payment1 = await recordPayment({ paymentNumber: 'PAY-IDEMP', transactionDate: '2026-11-11', saleId: sale.id, amount: 25000 });
+    const payment2 = await recordPayment({ paymentNumber: 'PAY-IDEMP', transactionDate: '2026-11-11', saleId: sale.id, amount: 25000 });
+
+    expect(payment2.id).toBe(payment1.id);
+    const journals = await db.journals.where('reference').equals(`PAYMENT:${payment1.id}`).toArray();
+    expect(journals.length).toBe(1);
+    const updatedSale = await db.sales.get(sale.id);
+    expect(updatedSale.paidAmount).toBe(25000);
+  });
+
+  it('rejects payment number already used for another invoice', async () => {
+    const saleA = await createSale({
+      saleNumber: 'INV-PAY-A', transactionDate: '2026-11-10', customerId: 'CUST-001',
+      items: [{ productId: 'P001', quantity: 1, unitPrice: 50000, total: 50000 }],
+      totalAmount: 50000, paymentMethod: 'CREDIT', paidAmount: 0,
+    });
+    const saleB = await createSale({
+      saleNumber: 'INV-PAY-B', transactionDate: '2026-11-10', customerId: 'CUST-001',
+      items: [{ productId: 'P002', quantity: 1, unitPrice: 50000, total: 50000 }],
+      totalAmount: 50000, paymentMethod: 'CREDIT', paidAmount: 0,
+    });
+
+    await recordPayment({ paymentNumber: 'PAY-SHARED', transactionDate: '2026-11-11', saleId: saleA.id, amount: 25000 });
+    await expect(
+      recordPayment({ paymentNumber: 'PAY-SHARED', transactionDate: '2026-11-11', saleId: saleB.id, amount: 25000 })
+    ).rejects.toThrow('sudah digunakan untuk invoice lain');
+
+    const saleBB = await db.sales.get(saleB.id);
+    expect(saleBB.paidAmount).toBe(0);
+  });
+
+  it('keeps payment, journal and sale status consistent after partial then full payment', async () => {
+    const sale = await createSale({
+      saleNumber: 'INV-PAY-003', transactionDate: '2026-11-10', customerId: 'CUST-001',
+      items: [{ productId: 'P003', quantity: 1, unitPrice: 100000, total: 100000 }],
+      totalAmount: 100000, paymentMethod: 'CREDIT', paidAmount: 0,
+    });
+
+    await recordPayment({ paymentNumber: 'PAY-PP-1', transactionDate: '2026-11-11', saleId: sale.id, amount: 40000 });
+    let updated = await db.sales.get(sale.id);
+    expect(updated.paidAmount).toBe(40000);
+    expect(updated.status).toBe('UNPAID');
+
+    await recordPayment({ paymentNumber: 'PAY-PP-2', transactionDate: '2026-11-12', saleId: sale.id, amount: 60000 });
+    updated = await db.sales.get(sale.id);
+    expect(updated.paidAmount).toBe(100000);
+    expect(updated.status).toBe('COMPLETED');
+    const allJournals = await db.journals.toArray();
+    const paymentJournals = allJournals.filter(j => j.reference.startsWith('PAYMENT:'));
+    expect(paymentJournals.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
 describe('Transaction Engine - Operating Transactions', () => {
   it('records operating expense atomically', async () => {
     const expense = await recordOperatingExpense({
