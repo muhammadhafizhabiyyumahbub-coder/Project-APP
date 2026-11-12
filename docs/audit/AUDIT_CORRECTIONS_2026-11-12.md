@@ -39,7 +39,7 @@ Re-audit of implementation against findings P.1–P.8. Three findings fixed and 
 
 ## P.2 Custom Category — NOT REPRODUCED
 
-Current financial form has one free-text field labelled `Deskripsi/Kategori`. It maps to journal `description` only. Transaction types are fixed (`EXPENSE`, `CAPITAL`, `WITHDRAWAL`) and account mapping is hardcoded per type in `transactionEngine.js`. There is no code path where user text selects debit/credit accounts. No fix required; label is slightly misleading but changing it is cosmetic, not a correctness fix.
+Current financial form has one free-text field labelled `Deskripsi transaksi`. It maps to journal `description` only. Transaction types are fixed (`EXPENSE`, `CAPITAL`, `WITHDRAWAL`) and account mapping is hardcoded per type in `transactionEngine.js`. There is no code path where user text selects debit/credit accounts. No fix required; label is slightly misleading but changing it is cosmetic, not a correctness fix.
 
 ## P.3 Save/Load Reliability — NOT REPRODUCED
 

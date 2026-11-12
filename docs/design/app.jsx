@@ -1046,8 +1046,8 @@ const FinancialScreen = () => {
           <label className="text-sm">Jumlah (Rp)
             <input type="number" min="1" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2 dark:border-slate-700 dark:bg-slate-800" />
           </label>
-          <label className="text-sm">Deskripsi/Kategori
-            <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2 dark:border-slate-700 dark:bg-slate-800" placeholder="Cth: Listrik, Transportasi" />
+          <label className="text-sm">Deskripsi transaksi
+            <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 p-2 dark:border-slate-700 dark:bg-slate-800" placeholder="Cth: Bayar listrik" />
           </label>
         </div>
         <button type="submit" disabled={saving} className="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">{saving ? 'Menyimpan...' : 'Simpan'}</button>

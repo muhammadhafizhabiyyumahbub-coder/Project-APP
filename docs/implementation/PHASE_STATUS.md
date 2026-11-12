@@ -86,11 +86,11 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 
 | Test Category | Result | Evidence |
 |---|---|---|
-| Unit | Pass | 80 pass (17 files) |
+| Unit | Pass | 83 pass (17 files) |
 | Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity, payment idempotency, dashboard period filtering |
 | E2E | Pass | POS checkout, Dashboard balances, Financial screen, Product screen UI tests |
 | Build | Pass | `npm run build` passes, dist/ generated |
-| Regression | Pass | 80 tests |
+| Regression | Pass | 83 tests |
 | Manual application verification | Not Run | App runs in browser via `npm run dev` |
 | Offline behavior | Pass | IndexedDB storage tests |
 | Data integrity | Pass | Journal balancing, rollback, atomic sale+stock, single journal per sale verified |
