@@ -10,7 +10,7 @@
 | Metric | Result |
 |---|---|
 | Test Files | 25 passed |
-| Tests | 102 passed |
+| Tests | 105 passed |
 | Skipped | 0 |
 | Failed | 0 |
 | Build | ✓ passed |
@@ -56,8 +56,8 @@
 
 ## Notes
 
-- All 102 unit/integration tests pass with `npm test` (exit 0).
-- Build passes (`npm run build`); production bundle ~348 KB gzipped JS, ~31 KB gzipped CSS.
+- All 105 unit/integration tests pass with `npm test` (exit 0).
+- Build passes (`npm run build`); production bundle 348 KB raw (103 KB gzip) JS, 31 KB raw (5.8 KB gzip) CSS.
 - Offline verification done by terminating the preview server process; reload served cached `umkm-manager-shell-v3` shell plus hashed assets; IndexedDB data intact.
 - Security review `docs/security/SECURITY_REVIEW_V1.md` completed; findings S-1 (backup row validation gap), S-2 (data at rest unencrypted), S-3 (multi-tab advisory lock), S-4 (no CSP) documented; no behavioral changes made.
 - Phase 8 full scope blocked by pending business decisions DEC-005/006/008/009/010.

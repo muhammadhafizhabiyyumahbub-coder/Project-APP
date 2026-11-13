@@ -90,7 +90,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity, payment idempotency, dashboard period filtering, local date keys, backup rollback, collision-safe IDs, supplier/employee CRUD, storage quota |
 | E2E | Pass | POS checkout, Dashboard balances, Financial screen, Product screen UI tests |
 | Build | Pass | `npm run build` passes, dist/ generated, service worker copied |
-| Regression | Pass | 93 tests |
+| Regression | Pass | 105 tests |
 | Manual application verification | Completed | Preview build loaded online and offline (server stopped); service worker served the cached app shell, IndexedDB data intact, no console errors |
 | Offline behavior | Pass | IndexedDB storage tests |
 | Data integrity | Pass | Journal balancing, rollback, atomic sale+stock, single journal per sale verified |

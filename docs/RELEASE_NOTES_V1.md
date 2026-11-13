@@ -55,7 +55,7 @@
 3. Jika fitur Phase 8 penuh (payables, payroll, budgets, assets) dibutuhkan, harap menunggu keputusan bisnis DEC-005/006/008/009/010 sebelum mengaktifkan modul tersebut.
 4. Setiap transaksi penjualan secara atomik mencakup: membuat jurnal, mengurangi stok, dan memperbarui status pembayaran — tidak boleh double-count.
 5. Nominal uang selalu integer Rupiah; tidak ada operasi desimal di dalam database.
-6. Aplikasi diuji dengan `npm test` (102 tests, exit 0) dan `npm run build` (pass).
+6. Aplikasi diuji dengan `npm test` (105 tests, exit 0) dan `npm run build` (pass).
 7. Verifikasi offline dilakukan dengan menghentikan proses server preview lalu merefresh; aplikasi terus berjalan dari cache service worker dan data IndexedDB tetap ada.
 
 ## Update Selanjutnya (V2 Roadmap — belum dijadwalkan)
