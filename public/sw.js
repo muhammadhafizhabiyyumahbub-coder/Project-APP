@@ -1,4 +1,4 @@
-const CACHE_NAME = 'umkm-manager-shell-v1';
+const CACHE_NAME = 'umkm-manager-shell-v2';
 const APP_SHELL = ['./', './index.html'];
 
 self.addEventListener('install', event => {
@@ -27,8 +27,11 @@ self.addEventListener('fetch', event => {
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
-        .then(response => {
-          if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
+        .then(async response => {
+          if (response.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put(request, response.clone());
+          }
           return response;
         })
         .catch(async () => (await caches.match(request)) || caches.match('./index.html'))
@@ -37,8 +40,11 @@ self.addEventListener('fetch', event => {
   }
 
   event.respondWith(
-    caches.match(request).then(cached => cached || fetch(request).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
+    caches.match(request).then(cached => cached || fetch(request).then(async response => {
+      if (response.ok) {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(request, response.clone());
+      }
       return response;
     }))
   );

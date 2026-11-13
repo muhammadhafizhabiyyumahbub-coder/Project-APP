@@ -13,7 +13,7 @@
 | Product Version | V1 draft |
 | Development Model | Offline-First, Local-First |
 | Current Phase | Phase 8, Business Operations (approved subset) |
-| Current Status | Phase 8 subset complete; Phase 11 offline cache and reliability groundwork added |
+| Current Status | Phase 8 subset complete; Phase 11 offline shell cache verified in browser |
 | Approved Phase | Phase 8 subset (supplier + employee CRUD) |
 | Next Action | Finish Phase 11 reliability checks and resolve pending business decisions |
 | Release Status | Not Released |
@@ -35,7 +35,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | 8 | Business Operations | In Progress (approved subset: supplier + employee CRUD only) |
 | 9 | Reports & Dashboard | Completed |
 | 10 | Backup & Restore | Completed |
-| 11 | Offline & Reliability Hardening | In Progress (service worker cache, storage quota check, collision-safe tab token) |
+| 11 | Offline & Reliability Hardening | In Progress (service worker shell cache verified, storage quota check, collision-safe tab token) |
 | 12 | Final QA & V1 Release | Not Started |
 
 ## 3. Phase 0 Details
@@ -91,7 +91,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | E2E | Pass | POS checkout, Dashboard balances, Financial screen, Product screen UI tests |
 | Build | Pass | `npm run build` passes, dist/ generated, service worker copied |
 | Regression | Pass | 93 tests |
-| Manual application verification | Not Run | App runs in browser via `npm run dev` |
+| Manual application verification | Partial | Preview build loaded; service worker registered and shell plus hashed assets cached |
 | Offline behavior | Pass | IndexedDB storage tests |
 | Data integrity | Pass | Journal balancing, rollback, atomic sale+stock, single journal per sale verified |
 | Documentation consistency | Reviewed | Phase 3 status updated |
@@ -113,7 +113,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | ISSUE-010 | Resolved | Dashboard period filter (Hari Ini, Bulan Ini) changes label only, does not filter data. | Fixed in audit P.6; filtering via dashboardAggregation.js |
 | ISSUE-011 | Low | Financial transaction custom category feature deferred (needs design for field without changing account). | Deferred |
 | ISSUE-012 | Medium | Phase 8 implemented only supplier and employee CRUD; payroll, payables, budgets, and assets remain pending business decisions. | Confirmed |
-| ISSUE-013 | Medium | Service worker is built and registered, but offline reload behavior has not been manually verified in a browser. | Open |
+| ISSUE-013 | Medium | Service worker is built and registered; shell and hashed assets were verified in cache. Actual network-off reload was not simulated. | Partly resolved |
 
 ## 6. Pending Decisions
 
