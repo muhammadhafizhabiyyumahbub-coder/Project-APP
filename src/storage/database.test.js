@@ -11,9 +11,9 @@ describe('local database foundation', () => {
   it('opens current schema and exposes expected tables', async () => {
     await initializeDatabase();
 
-    expect(DATABASE_VERSION).toBe(2);
+    expect(DATABASE_VERSION).toBe(3);
     expect(db.tables.map((table) => table.name)).toEqual([
-      'businesses', 'products', 'customers', 'settings', 'features', 'journals', 'auditTrail', 'sales', 'payments', 'inventoryMovements',
+      'businesses', 'products', 'customers', 'settings', 'features', 'journals', 'auditTrail', 'sales', 'payments', 'inventoryMovements', 'suppliers', 'employees',
     ]);
   });
 

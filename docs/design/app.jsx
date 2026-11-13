@@ -15,6 +15,9 @@ import { listInvoices } from '../../src/storage/invoiceRepository.js';
 import { recordPayment } from '../../src/financial/transactionEngine.js';
 import { filterPostedJournals, sumAccountBalance } from '../../src/financial/dashboardAggregation.js';
 import { toLocalDateKey } from '../../src/financial/dateKey.js';
+import { listSuppliers, saveSupplier, deleteSupplier } from '../../src/storage/supplierRepository.js';
+import { listEmployees, saveEmployee, deleteEmployee } from '../../src/storage/employeeRepository.js';
+import { createId } from '../../src/storage/idGenerator.js';
 
 // ==========================================
 // 1. ICONS (SVG Mocks for zero-dependency)
@@ -1120,6 +1123,33 @@ const SettingsScreen = () => {
   return <div className="space-y-6"><div><h1 className="text-2xl font-semibold">Backup & Restore</h1><p className="mt-1 text-sm text-slate-500">Simpan salinan data lokal sebelum pindah perangkat atau browser.</p></div>{message && <div role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{message}</div>}{error && <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}<Card className="space-y-4"><div><h2 className="font-semibold">Backup data</h2><p className="mt-1 text-sm text-slate-500">Unduh seluruh data aplikasi dalam file JSON.</p></div><Button onClick={backup}>Unduh backup</Button></Card><Card className="space-y-4"><div><h2 className="font-semibold">Restore data</h2><p className="mt-1 text-sm text-slate-500">File valid akan mengganti seluruh data aplikasi saat ini.</p></div><input aria-label="Pilih file backup" type="file" accept="application/json,.json" onChange={restore} /></Card></div>;
 };
 
+const CrudPeopleScreen = ({ type }) => {
+  const isSupplier = type === 'supplier';
+  const label = isSupplier ? 'Pemasok' : 'Karyawan';
+  const [items, setItems] = useState([]);
+  const [name, setName] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const repository = isSupplier ? { list: listSuppliers, save: saveSupplier, remove: deleteSupplier } : { list: listEmployees, save: saveEmployee, remove: deleteEmployee };
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { setItems(await repository.list()); setError(null); } catch (e) { setError(e.message); } finally { setLoading(false); }
+  }, [isSupplier]);
+  useEffect(() => { load(); }, [load]);
+
+  const submit = async event => {
+    event.preventDefault();
+    try {
+      await repository.save({ id: editingId || createId(isSupplier ? 'SUP' : 'EMP'), nama: name });
+      setName(''); setEditingId(null); await load();
+    } catch (e) { setError(e.message); }
+  };
+
+  return <div className="space-y-6"><div><h1 className="text-2xl font-semibold">{label}</h1><p className="mt-1 text-sm text-slate-500">Kelola data {label.toLowerCase()} tanpa membuat transaksi keuangan.</p></div>{error && <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}<Card><form onSubmit={submit} className="flex gap-3"><label className="sr-only" htmlFor={`${type}-name`}>Nama {label}</label><input id={`${type}-name`} value={name} onChange={e => setName(e.target.value)} placeholder={`Nama ${label.toLowerCase()}`} required className="flex-1 rounded-lg border border-slate-300 p-2 dark:border-slate-700 dark:bg-slate-800" /><Button type="submit">{editingId ? 'Simpan perubahan' : `Tambah ${label}`}</Button></form></Card>{loading ? <p className="text-sm text-slate-500">Memuat data...</p> : items.length === 0 ? <EmptyState icon="Users" title={`Belum ada ${label.toLowerCase()}`} description={`Tambahkan ${label.toLowerCase()} pertama.`} /> : <Card noPadding><div className="divide-y divide-slate-200 dark:divide-slate-800">{items.map(item => <div key={item.id} className="flex items-center justify-between p-4"><span>{item.nama}</span><div><Button variant="ghost" onClick={() => { setEditingId(item.id); setName(item.nama); }}>Edit</Button><Button variant="ghost" onClick={async () => { await repository.remove(item.id); await load(); }}>Hapus</Button></div></div>)}</div></Card>}</div>;
+};
+
 const PlaceholderScreen = ({ title, description }) => (
   <Card className="h-full flex items-center justify-center min-h-[60vh]"><EmptyState icon="Grid" title={title} description={description || "Layar ini merupakan bagian dari purwarupa. Data belum disambungkan ke fungsi ini."} /></Card>
 );
@@ -1349,6 +1379,8 @@ const App = () => {
 
   const systemNav = [
     { id: 'fitur', name: 'Tambah Fitur', icon: 'Grid' },
+    { id: 'pemasok', name: 'Pemasok', icon: 'Users', section: 'operations' },
+    { id: 'karyawan', name: 'Karyawan', icon: 'Users', section: 'operations' },
     { id: 'pengaturan', name: 'Pengaturan', icon: 'Settings' },
   ];
 
@@ -1405,6 +1437,8 @@ const App = () => {
       case 'pesanan': return <PlaceholderScreen title="Manajemen Pesanan" description="Pantau operasional pesanan (Menunggu diproses, Sedang dikemas, Selesai)." />;
       case 'piutang': return <ReceivablesScreen customers={customers} />;
       case 'laporan': return <ReportsScreen />;
+      case 'pemasok': return <CrudPeopleScreen type="supplier" />;
+      case 'karyawan': return <CrudPeopleScreen type="employee" />;
       case 'pengaturan': return <SettingsScreen />;
       default: return <DashboardScreen navigate={setActiveTab} products={products} />;
     }

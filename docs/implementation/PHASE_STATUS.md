@@ -12,10 +12,10 @@
 |---|---|
 | Product Version | V1 draft |
 | Development Model | Offline-First, Local-First |
-| Current Phase | Phase 7, Invoices & Receivables |
-| Current Status | Completed |
-| Approved Phase | Phase 6 |
-| Next Action | Phase 8 Business Operations (pending owner approval) |
+| Current Phase | Phase 8, Business Operations (approved subset) |
+| Current Status | In Progress - supplier and employee CRUD only |
+| Approved Phase | Phase 8 subset (supplier + employee CRUD) |
+| Next Action | Resolve pending business decisions before payroll, payables, budgets, assets |
 | Release Status | Not Released |
 
 Status reflects repository evidence. Documentation is not implementation evidence.
@@ -32,7 +32,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | 5 | Products & Inventory | Completed |
 | 6 | Customers, Orders & Sales | Completed |
 | 7 | Invoices & Receivables | Completed |
-| 8 | Business Operations | Not Started |
+| 8 | Business Operations | In Progress (approved subset: supplier + employee CRUD only) |
 | 9 | Reports & Dashboard | Completed |
 | 10 | Backup & Restore | Completed |
 | 11 | Offline & Reliability Hardening | Not Started |
@@ -86,11 +86,11 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 
 | Test Category | Result | Evidence |
 |---|---|---|
-| Unit | Pass | 87 pass (19 files) |
-| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity, payment idempotency, dashboard period filtering, local date keys, backup rollback, collision-safe IDs |
+| Unit | Pass | 91 pass (21 files) |
+| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity, payment idempotency, dashboard period filtering, local date keys, backup rollback, collision-safe IDs, supplier/employee CRUD |
 | E2E | Pass | POS checkout, Dashboard balances, Financial screen, Product screen UI tests |
 | Build | Pass | `npm run build` passes, dist/ generated |
-| Regression | Pass | 87 tests |
+| Regression | Pass | 91 tests |
 | Manual application verification | Not Run | App runs in browser via `npm run dev` |
 | Offline behavior | Pass | IndexedDB storage tests |
 | Data integrity | Pass | Journal balancing, rollback, atomic sale+stock, single journal per sale verified |
@@ -112,6 +112,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | ISSUE-009 | Medium | Dashboard widgets partially mock (sales trend chart, orders, transaction activity). | Confirmed; real balances connected |
 | ISSUE-010 | Low | Dashboard period filter (Hari Ini, Bulan Ini) changes label only, does not filter data. | Confirmed |
 | ISSUE-011 | Low | Financial transaction custom category feature deferred (needs design for field without changing account). | Deferred |
+| ISSUE-012 | Medium | Phase 8 implemented only supplier and employee CRUD; payroll, payables, budgets, and assets remain pending business decisions. | Confirmed |
 
 ## 6. Pending Decisions
 

@@ -3,11 +3,14 @@ import { createId } from './idGenerator';
 
 export async function listInventoryMovements({ productId, limit = 100 } = {}) {
   await initializeDatabase();
-  let query = db.inventoryMovements.orderBy('transactionDate').reverse();
-  if (productId) {
-    query = query.filter(m => m.productId === productId);
-  }
-  return query.limit(limit).toArray();
+  const movements = await db.inventoryMovements.toArray();
+  const filtered = productId ? movements.filter(m => m.productId === productId) : movements;
+  return filtered
+    .sort((a, b) => {
+      if (a.transactionDate !== b.transactionDate) return String(b.transactionDate).localeCompare(String(a.transactionDate));
+      return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+    })
+    .slice(0, limit);
 }
 
 export async function getInventoryMovement(id) {

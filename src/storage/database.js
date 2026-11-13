@@ -1,7 +1,7 @@
 import Dexie from 'dexie';
 
 export const DATABASE_NAME = 'umkm-manager';
-export const DATABASE_VERSION = 2;
+export const DATABASE_VERSION = 3;
 
 export const db = new Dexie(DATABASE_NAME);
 
@@ -25,6 +25,8 @@ db.version(DATABASE_VERSION).stores({
   sales: 'id, saleNumber, customerId, journalId, transactionDate',
   payments: 'id, paymentNumber, saleId, journalId',
   inventoryMovements: 'id, productId, saleId, transactionDate',
+  suppliers: 'id, nama',
+  employees: 'id, nama',
 });
 
 export async function initializeDatabase() {
