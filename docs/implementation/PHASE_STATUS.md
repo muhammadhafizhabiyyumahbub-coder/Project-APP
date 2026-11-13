@@ -13,9 +13,9 @@
 | Product Version | V1 draft |
 | Development Model | Offline-First, Local-First |
 | Current Phase | Phase 8, Business Operations (approved subset) |
-| Current Status | Phase 8 subset complete; Phase 11 reliability checks complete with offline reload evidence |
+| Current Status | Phase 12 In Progress (documentation QA, release notes, manual QA verified); push blocked by GitHub credential |
 | Approved Phase | Phase 8 subset (supplier + employee CRUD) |
-| Next Action | Resolve pending business decisions before Phase 8 full scope; start Phase 12 final QA |
+| Next Action | Resolve pending business decisions (DEC-005/006/008/009/010) before Phase 8 full scope; push local commit 628e5ea |
 | Release Status | Not Released |
 
 Status reflects repository evidence. Documentation is not implementation evidence.
@@ -36,7 +36,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | 9 | Reports & Dashboard | Completed |
 | 10 | Backup & Restore | Completed |
 | 11 | Offline & Reliability Hardening | Completed (offline reload verified 2026-11-14; multi-tab read-only lock with takeover; quota warning UI; DB recovery screen) |
-| 12 | Final QA & V1 Release | Not Started |
+| 12 | Final QA & V1 Release | In Progress (documentation QA, release notes, manual QA checklist; test suite + build pass) |
 
 ## 3. Phase 0 Details
 

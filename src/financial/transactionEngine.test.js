@@ -160,6 +160,22 @@ describe('Transaction Engine - Payment Idempotency', () => {
     expect(saleBB.paidAmount).toBe(0);
   });
 
+  it('records a payment without adding revenue or a second sale', async () => {
+    const sale = await createSale({
+      saleNumber: 'INV-NOREV', transactionDate: '2026-11-10', customerId: 'CUST-001',
+      items: [{ productId: 'P003', quantity: 1, unitPrice: 100000, total: 100000 }],
+      totalAmount: 100000, paymentMethod: 'CREDIT', paidAmount: 0,
+    });
+
+    await recordPayment({ paymentNumber: 'PAY-NOREV', transactionDate: '2026-11-11', saleId: sale.id, amount: 40000 });
+
+    await expect(getAccountBalance('4000')).resolves.toBe(100000);
+    await expect(getAccountBalance('1100')).resolves.toBe(60000);
+    await expect(getAccountBalance('1010')).resolves.toBe(40000);
+    await expect(db.sales.count()).resolves.toBe(1);
+    expect((await db.journals.where('reference').equals(`SALE:${sale.id}`).toArray())).toHaveLength(1);
+  });
+
   it('keeps payment, journal and sale status consistent after partial then full payment', async () => {
     const sale = await createSale({
       saleNumber: 'INV-PAY-003', transactionDate: '2026-11-10', customerId: 'CUST-001',

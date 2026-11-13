@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DATABASE_VERSION, db, initializeDatabase, resetDatabase } from './database';
+import { DATABASE_NAME, DATABASE_VERSION, db, initializeDatabase, resetDatabase } from './database';
 
 afterEach(async () => {
   await resetDatabase();
@@ -74,6 +74,30 @@ describe('local database foundation', () => {
     const open = vi.spyOn(db, 'open').mockRejectedValueOnce(new Error('IndexedDB blocked'));
     await expect(initializeDatabase()).rejects.toThrow('IndexedDB blocked');
     open.mockRestore();
+  });
+
+  it('upgrades a v1 database to the current schema without losing data', async () => {
+    db.close();
+    await Dexie.delete(DATABASE_NAME);
+
+    const v1 = new Dexie(DATABASE_NAME);
+    v1.version(1).stores({
+      businesses: 'id',
+      products: 'id, sku, nama',
+      customers: 'id, nama',
+      settings: 'id, key',
+      features: 'featureId',
+      journals: 'id, status, idempotencyKey, reference',
+    });
+    await v1.open();
+    await v1.products.put({ id: 'P-V1', nama: 'Produk Lama' });
+    v1.close();
+
+    await initializeDatabase();
+
+    await expect(db.products.get('P-V1')).resolves.toMatchObject({ nama: 'Produk Lama' });
+    expect(db.tables.map(table => table.name)).toContain('suppliers');
+    expect(db.tables.map(table => table.name)).toContain('employees');
   });
 
   it('preserves existing records when schema version is bumped', async () => {
