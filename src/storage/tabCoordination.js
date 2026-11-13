@@ -1,9 +1,11 @@
+import { createId } from './idGenerator';
+
 const STORAGE_KEY = 'umkm-tab-token';
 const HEARTBEAT_INTERVAL = 3000;
 const STALE_THRESHOLD = 10000;
 
 export function acquireTabLock() {
-  const token = `${Date.now()}-${Math.random()}`;
+  const token = createId('TAB');
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, timestamp: Date.now() }));
   
   const heartbeat = setInterval(() => {

@@ -13,7 +13,7 @@
 | Product Version | V1 draft |
 | Development Model | Offline-First, Local-First |
 | Current Phase | Phase 8, Business Operations (approved subset) |
-| Current Status | In Progress - supplier and employee CRUD only |
+| Current Status | Phase 8 subset complete; Phase 11 reliability groundwork added |
 | Approved Phase | Phase 8 subset (supplier + employee CRUD) |
 | Next Action | Resolve pending business decisions before payroll, payables, budgets, assets |
 | Release Status | Not Released |
@@ -35,7 +35,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | 8 | Business Operations | In Progress (approved subset: supplier + employee CRUD only) |
 | 9 | Reports & Dashboard | Completed |
 | 10 | Backup & Restore | Completed |
-| 11 | Offline & Reliability Hardening | Not Started |
+| 11 | Offline & Reliability Hardening | In Progress (storage quota check and collision-safe tab token only) |
 | 12 | Final QA & V1 Release | Not Started |
 
 ## 3. Phase 0 Details
@@ -86,11 +86,11 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 
 | Test Category | Result | Evidence |
 |---|---|---|
-| Unit | Pass | 91 pass (21 files) |
-| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity, payment idempotency, dashboard period filtering, local date keys, backup rollback, collision-safe IDs, supplier/employee CRUD |
+| Unit | Pass | 93 pass (22 files) |
+| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity, payment idempotency, dashboard period filtering, local date keys, backup rollback, collision-safe IDs, supplier/employee CRUD, storage quota |
 | E2E | Pass | POS checkout, Dashboard balances, Financial screen, Product screen UI tests |
 | Build | Pass | `npm run build` passes, dist/ generated |
-| Regression | Pass | 91 tests |
+| Regression | Pass | 93 tests |
 | Manual application verification | Not Run | App runs in browser via `npm run dev` |
 | Offline behavior | Pass | IndexedDB storage tests |
 | Data integrity | Pass | Journal balancing, rollback, atomic sale+stock, single journal per sale verified |
@@ -109,8 +109,8 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | ISSUE-006 | Resolved | UI/UX and Design System required consolidation and implementation validation. | Responsive UI with light/dark mode implemented |
 | ISSUE-007 | Low | Historical audit reports describe earlier empty-document state. | Historical fact; current status updated |
 | ISSUE-008 | Medium | Documentation contains draft/placeholder language and requires product approval. | Confirmed |
-| ISSUE-009 | Medium | Dashboard widgets partially mock (sales trend chart, orders, transaction activity). | Confirmed; real balances connected |
-| ISSUE-010 | Low | Dashboard period filter (Hari Ini, Bulan Ini) changes label only, does not filter data. | Confirmed |
+| ISSUE-009 | Resolved | Dashboard widgets partially mock (sales trend chart, orders, transaction activity). | Connected to real balances and journals |
+| ISSUE-010 | Resolved | Dashboard period filter (Hari Ini, Bulan Ini) changes label only, does not filter data. | Fixed in audit P.6; filtering via dashboardAggregation.js |
 | ISSUE-011 | Low | Financial transaction custom category feature deferred (needs design for field without changing account). | Deferred |
 | ISSUE-012 | Medium | Phase 8 implemented only supplier and employee CRUD; payroll, payables, budgets, and assets remain pending business decisions. | Confirmed |
 
