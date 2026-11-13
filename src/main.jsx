@@ -1,17 +1,31 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../docs/design/app.jsx';
-import ErrorBoundary from './ErrorBoundary';
+import ErrorBoundary, { DatabaseErrorScreen } from './ErrorBoundary';
 import { initializeDatabase } from './storage/database';
+import { formatDatabaseError } from './storage/databaseErrors';
 import { getStorageEstimate } from './storage/storageQuota';
 import './styles.css';
 
 export { ErrorBoundary };
 
-// Initialize database at startup
-initializeDatabase().catch(err => {
-  console.error('Database initialization failed:', err);
-});
+const root = createRoot(document.getElementById('root'));
+
+// Initialize database before first render so a failure shows a recovery screen.
+initializeDatabase()
+  .then(() => {
+    root.render(
+      <React.StrictMode>
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      </React.StrictMode>,
+    );
+  })
+  .catch(err => {
+    console.error('Database initialization failed:', err);
+    root.render(<DatabaseErrorScreen message={formatDatabaseError(err)} />);
+  });
 
 getStorageEstimate()
   .then(({ percent }) => {
@@ -26,11 +40,3 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     });
   });
 }
-
-createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </React.StrictMode>,
-);

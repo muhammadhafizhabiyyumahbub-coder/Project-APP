@@ -23,3 +23,15 @@ export default class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
+
+export function DatabaseErrorScreen({ message }) {
+  return (
+    <main role="alert" className="min-h-screen bg-slate-50 p-6 text-slate-900">
+      <h1 className="text-xl font-semibold">Database lokal tidak dapat dibuka</h1>
+      <p className="mt-2 text-sm text-slate-600">{message}</p>
+      <button type="button" onClick={() => window.location.reload()} className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white">
+        Muat ulang aplikasi
+      </button>
+    </main>
+  );
+}

@@ -1,9 +1,23 @@
 import Dexie from 'dexie';
+import { isTabLockOwner } from './tabCoordination';
 
 export const DATABASE_NAME = 'umkm-manager';
 export const DATABASE_VERSION = 3;
 
 export const db = new Dexie(DATABASE_NAME);
+
+db.use({
+  stack: 'dbcore',
+  create: down => ({
+    ...down,
+    transaction: (stores, mode, options) => {
+      if (mode === 'readwrite' && !isTabLockOwner()) {
+        throw new Error('Tab ini dalam mode baca saja. Ambil alih kendali dari tab lain terlebih dahulu.');
+      }
+      return down.transaction(stores, mode, options);
+    },
+  }),
+});
 
 db.version(1).stores({
   businesses: 'id',

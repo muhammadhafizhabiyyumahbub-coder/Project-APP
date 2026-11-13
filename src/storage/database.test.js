@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DATABASE_VERSION, db, initializeDatabase, resetDatabase } from './database';
 
 afterEach(async () => {
@@ -67,6 +67,13 @@ describe('local database foundation', () => {
     })).rejects.toThrow('rollback');
 
     await expect(db.products.get('P002')).resolves.toBeUndefined();
+  });
+
+  it('rejects when the database cannot be opened', async () => {
+    db.close();
+    const open = vi.spyOn(db, 'open').mockRejectedValueOnce(new Error('IndexedDB blocked'));
+    await expect(initializeDatabase()).rejects.toThrow('IndexedDB blocked');
+    open.mockRestore();
   });
 
   it('preserves existing records when schema version is bumped', async () => {

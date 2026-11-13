@@ -4,8 +4,8 @@ import { useCustomers } from '../../src/hooks/useCustomers.js';
 import { db, initializeDatabase } from '../../src/storage/database.js';
 import { exportBackup, importBackup } from '../../src/storage/backupRepository.js';
 import { listFeatures, saveFeature } from '../../src/storage/featuresRepository.js';
-import { acquireTabLock } from '../../src/storage/tabCoordination.js';
-import { checkStorageQuota, onStorageWarning } from '../../src/storage/storageMonitor.js';
+import { acquireTabLock, subscribeTabLock, takeoverTabLock } from '../../src/storage/tabCoordination.js';
+import { checkStorageQuota, onStorageWarning, clearServiceWorkerCache } from '../../src/storage/storageMonitor.js';
 import { getAccountBalance } from '../../src/financial/financialEngine.js';
 import { recordOperatingExpense, recordCapitalContribution, recordOwnerWithdrawal, createSale } from '../../src/financial/transactionEngine.js';
 import { InventoryScreen } from './InventoryScreen.jsx';
@@ -1274,6 +1274,7 @@ const App = () => {
 
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [storageWarning, setStorageWarning] = useState(null);
+  const [tabStatus, setTabStatus] = useState({ isOwner: true });
 
   const handleSaveProduct = async (product, editingProduct) => {
     if (editingProduct) {
@@ -1308,9 +1309,13 @@ const App = () => {
   ]);
 
   useEffect(() => {
-    const release = acquireTabLock();
-    return release;
+    const lock = acquireTabLock();
+    return lock.release;
   }, []);
+
+  useEffect(() => subscribeTabLock(status => {
+    setTabStatus(prev => (prev.isOwner === status.isOwner ? prev : status));
+  }), []);
 
   useEffect(() => {
     return onStorageWarning(setStorageWarning);
@@ -1566,15 +1571,43 @@ const App = () => {
           {/* Page Content */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 custom-scrollbar">
             <div className="max-w-7xl mx-auto pb-10">
+              {!tabStatus.isOwner && (
+                <div role="alert" className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 flex items-start gap-3">
+                  <Icon name="AlertTriangle" className="w-5 h-5 text-blue-500 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200">Tab Ini Mode Baca Saja</h3>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      Aplikasi sedang dipakai di tab lain. Data tidak dapat diubah dari tab ini sampai Anda mengambil alih kendali.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTabStatus(takeoverTabLock())}
+                    className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    Ambil alih kendali
+                  </button>
+                </div>
+              )}
               {storageWarning && (
                 <div role="alert" className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-4 flex items-start gap-3">
                   <Icon name="AlertTriangle" className="w-5 h-5 text-amber-500 mt-0.5" />
-                  <div>
+                  <div className="flex-1">
                     <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-200">Kapasitas Penyimpanan Hampir Penuh</h3>
                     <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
                       Penyimpanan browser terpakai {storageWarning.usagePercent.toFixed(1)}%. Segera lakukan backup dan bersihkan data lama agar aplikasi tetap berjalan lancar.
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await clearServiceWorkerCache();
+                      setStorageWarning((await checkStorageQuota()).available ? null : storageWarning);
+                    }}
+                    className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                  >
+                    Bersihkan cache aplikasi
+                  </button>
                 </div>
               )}
               {renderContent()}

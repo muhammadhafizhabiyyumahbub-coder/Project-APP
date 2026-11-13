@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import App from '../docs/design/app.jsx';
-import ErrorBoundary from './ErrorBoundary';
+import ErrorBoundary, { DatabaseErrorScreen } from './ErrorBoundary';
 import { listFeatures } from './storage/featuresRepository';
 import { db, initializeDatabase } from './storage/database';
 
@@ -211,6 +211,16 @@ describe('application shell', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Aplikasi mengalami kendala');
     expect(screen.getByRole('button', { name: 'Muat ulang aplikasi' })).toBeInTheDocument();
+  });
+
+  it('shows an Indonesian database recovery screen with reload action', () => {
+    render(<DatabaseErrorScreen message="Database lokal gagal dibuka. Muat ulang aplikasi." />);
+
+    const alerts = screen.getAllByRole('alert');
+    const screenAlert = alerts[alerts.length - 1];
+    expect(screenAlert).toHaveTextContent('Database lokal tidak dapat dibuka');
+    expect(screenAlert).toHaveTextContent('Database lokal gagal dibuka');
+    expect(within(screenAlert).getByRole('button', { name: 'Muat ulang aplikasi' })).toBeInTheDocument();
   });
 
   it('shows notification action feedback', async () => {

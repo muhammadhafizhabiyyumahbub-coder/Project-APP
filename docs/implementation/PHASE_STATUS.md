@@ -13,9 +13,9 @@
 | Product Version | V1 draft |
 | Development Model | Offline-First, Local-First |
 | Current Phase | Phase 8, Business Operations (approved subset) |
-| Current Status | Phase 8 subset complete; Phase 11 offline shell cache verified in browser |
+| Current Status | Phase 8 subset complete; Phase 11 reliability checks complete with offline reload evidence |
 | Approved Phase | Phase 8 subset (supplier + employee CRUD) |
-| Next Action | Finish Phase 11 reliability checks and resolve pending business decisions |
+| Next Action | Resolve pending business decisions before Phase 8 full scope; start Phase 12 final QA |
 | Release Status | Not Released |
 
 Status reflects repository evidence. Documentation is not implementation evidence.
@@ -35,7 +35,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | 8 | Business Operations | In Progress (approved subset: supplier + employee CRUD only) |
 | 9 | Reports & Dashboard | Completed |
 | 10 | Backup & Restore | Completed |
-| 11 | Offline & Reliability Hardening | In Progress (service worker shell cache verified, storage quota check, collision-safe tab token) |
+| 11 | Offline & Reliability Hardening | Completed (offline reload verified 2026-11-14; multi-tab read-only lock with takeover; quota warning UI; DB recovery screen) |
 | 12 | Final QA & V1 Release | Not Started |
 
 ## 3. Phase 0 Details
@@ -91,7 +91,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | E2E | Pass | POS checkout, Dashboard balances, Financial screen, Product screen UI tests |
 | Build | Pass | `npm run build` passes, dist/ generated, service worker copied |
 | Regression | Pass | 93 tests |
-| Manual application verification | Partial | Preview build loaded; service worker registered and shell plus hashed assets cached |
+| Manual application verification | Completed | Preview build loaded online and offline (server stopped); service worker served the cached app shell, IndexedDB data intact, no console errors |
 | Offline behavior | Pass | IndexedDB storage tests |
 | Data integrity | Pass | Journal balancing, rollback, atomic sale+stock, single journal per sale verified |
 | Documentation consistency | Reviewed | Phase 3 status updated |
@@ -113,7 +113,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | ISSUE-010 | Resolved | Dashboard period filter (Hari Ini, Bulan Ini) changes label only, does not filter data. | Fixed in audit P.6; filtering via dashboardAggregation.js |
 | ISSUE-011 | Low | Financial transaction custom category feature deferred (needs design for field without changing account). | Deferred |
 | ISSUE-012 | Medium | Phase 8 implemented only supplier and employee CRUD; payroll, payables, budgets, and assets remain pending business decisions. | Confirmed |
-| ISSUE-013 | Medium | Service worker is built and registered; shell and hashed assets were verified in cache. Actual network-off reload was not simulated. | Partly resolved |
+| ISSUE-013 | Medium | Service worker is built and registered; shell and hashed assets were verified in cache. Actual network-off reload was not simulated. | Resolved 2026-11-14: preview server process terminated, reload served cached shell, IndexedDB intact, no console errors |
 
 ## 6. Pending Decisions
 
@@ -205,3 +205,17 @@ Phase 3 is complete when:
 6. Trial balance verification passes
 7. Journal reversal for corrections works with audit trail
 8. All tests pass (5 financial engine tests + 27 existing)
+
+## Phase 11 Reliability Evidence (2026-11-14)
+
+- Offline reload: preview server process stopped; reload of `http://127.0.0.1:4173/` served cached app shell (cache `umkm-manager-shell-v3`), app heading rendered `Dashboard`, IndexedDB marker row `OFFLINE-CHECK` read back intact, console error list empty.
+- Service worker: install/activate/fetch handlers use awaited cache writes; navigate fallback serves cache on failed fetch or non-OK response; cache name `umkm-manager-shell-v3` with `/`, `/index.html`, hashed JS, CSS.
+- Multi-tab: second tab (different lock token) is read-only; DB mutation rejected with `Tab ini dalam mode baca saja...`; takeover via explicit button sets new owner; module tests cover acquire/release/takeover.
+- Storage quota: warning at >= 80% usage with action to clear service worker caches only; UI in `docs/design/app.jsx`; tests cover threshold boundaries.
+- DB recovery: `initializeDatabase()` failure renders Indonesian recovery screen with reload action; quota error message includes reload instruction; failure and migration tests pass.
+- Security review: `docs/security/SECURITY_REVIEW_V1.md` written; no unsafe HTML sinks, no external calls, no secrets found; backup import stays atomic (verified by rollback test).
+
+## Phase 11 Performance (2026-11-14, preview build)
+
+- Production bundle: JS ~348 KB (gzip ~103 KB), CSS ~31 KB (gzip ~5.8 KB).
+- Preview load performance: DOMContentLoaded ~300 ms, load ~302 ms, response end ~98 ms.
