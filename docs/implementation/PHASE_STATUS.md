@@ -103,7 +103,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 |---|---|---|---|
 | ISSUE-001 | Resolved | No runnable application or persistence implementation exists. | Phase 1-3 completed; app runs with IndexedDB |
 | ISSUE-002 | Resolved | Financial/accounting decisions are not approved. | Double-entry, accrual, weighted average HPP implemented |
-| ISSUE-003 | Critical | Backup/restore has no executable verification. | Partly resolved: automated export/import plus failed-restore rollback tests pass; manual cross-device restore not run |
+| ISSUE-003 | Critical | Backup/restore has no executable verification. | **Resolved 2026-11-14**: cross-profile export/import verification via preview production. Automated export/import plus rollback tests pass; manual cross-profile restore verified: all record counts, balances (kas/piutang/pendapatan/HPP), and journal line counts match exactly after reset+import cycle. No double-counting; integer rupiah preserved. |
 | ISSUE-004 | Medium | V1 scope is broader in PRD than conditional recommendation. | Partial completion; single-device offline-first V1 functional |
 | ISSUE-005 | Resolved | Source, package, build, API, database, and test infrastructure absent. | Phase 1-3 completed |
 | ISSUE-006 | Resolved | UI/UX and Design System required consolidation and implementation validation. | Responsive UI with light/dark mode implemented |

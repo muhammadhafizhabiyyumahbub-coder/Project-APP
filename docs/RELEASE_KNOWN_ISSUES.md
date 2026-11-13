@@ -7,7 +7,7 @@
 
 | ID | Level | Description | Status |
 |---|---|---|---|
-| ISSUE-003 | Critical | Backup/restore has no executable verification (manual cross-device restore not run) | Partly resolved: automated export/import plus rollback tests pass |
+| ISSUE-003 | Critical | Backup/restore has no executable verification (manual cross-device restore not run) | **Resolved 2026-11-14**: cross-profile export/import verification via preview production. Automated export/import plus rollback tests pass; manual cross-profile restore verified: all record counts, balances (kas/piutang/pendapatan/HPP), and journal line counts match exactly after reset+import cycle. No double-counting; integer rupiah preserved. |
 | ISSUE-004 | Medium | V1 scope broader in PRD than conditional recommendation | Partial completion; single-device offline-first V1 functional |
 | ISSUE-005 | Resolved | Source, package, build, API, database, and test infrastructure absent | Phase 1-3 completed |
 | ISSUE-007 | Low | Historical audit reports describe earlier empty-document state | Historical fact; current status updated |
