@@ -87,10 +87,10 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | Test Category | Result | Evidence |
 |---|---|---|
 | Unit | Pass | 93 pass (22 files) |
-| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity, payment idempotency, dashboard period filtering, local date keys, backup rollback, collision-safe IDs, supplier/employee CRUD, storage quota |
+| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity, payment idempotency, dashboard period filtering, local date keys, backup rollback, collision-safe IDs, supplier/employee CRUD, storage quota, duplicate product lines, sale idempotency |
 | E2E | Pass | POS checkout, Dashboard balances, Financial screen, Product screen UI tests |
 | Build | Pass | `npm run build` passes, dist/ generated, service worker copied |
-| Regression | Pass | 105 tests |
+| Regression | Pass | 109 tests |
 | Manual application verification | Completed | Preview build loaded online and offline (server stopped); service worker served the cached app shell, IndexedDB data intact, no console errors |
 | Offline behavior | Pass | IndexedDB storage tests |
 | Data integrity | Pass | Journal balancing, rollback, atomic sale+stock, single journal per sale verified |

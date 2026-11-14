@@ -34,27 +34,33 @@ export async function recordStockIn({ productId, quantity, unitCost, transaction
 
 export async function reserveSaleStock(items, saleId, transactionDate) {
   await initializeDatabase();
-  const products = [];
+  // Aggregate quantities by productId first to handle duplicate product lines correctly.
+  // Each productId's total quantity should be deducted in one atomic operation.
+  const productQuantities = new Map();
   let totalCost = 0;
 
   for (const item of items) {
     const product = await getProduct(item.productId);
     if (!product) throw new Error(`Produk ${item.productId} tidak ditemukan.`);
     if (!Number.isInteger(item.quantity) || item.quantity <= 0) throw new Error('Quantity harus integer positif.');
+    
+    const existingQty = productQuantities.get(item.productId) || 0;
+    productQuantities.set(item.productId, existingQty + item.quantity);
+    
     if ((product.stok || 0) < item.quantity) throw new Error(`Stok produk ${item.productId} tidak mencukupi.`);
-    products.push({ product, item });
     totalCost += item.quantity * (product.hpp || 0);
   }
 
   await db.transaction('rw', db.products, db.inventoryMovements, async () => {
-    for (const { product, item } of products) {
-      product.stok -= item.quantity;
+    for (const [productId, totalQuantity] of productQuantities) {
+      const product = await getProduct(productId);
+      product.stok -= totalQuantity;
       await db.products.put(product);
       await db.inventoryMovements.put({
-        id: `STOCK-OUT-${saleId}-${product.id}`,
-        productId: product.id,
+        id: `STOCK-OUT-${saleId}-${productId}`,
+        productId,
         saleId,
-        quantity: item.quantity,
+        quantity: totalQuantity,
         unitCost: product.hpp || 0,
         transactionDate,
         type: 'STOCK_OUT',

@@ -42,38 +42,46 @@ export async function createSale(saleData) {
   }
 
   const idempotencyKey = saleData.idempotencyKey || `SALE-${saleData.saleNumber}`;
-  const existingJournal = await getJournalByIdempotencyKey(idempotencyKey);
-  if (existingJournal && existingJournal.status === 'POSTED') {
-    const existingSale = await db.sales.where('journalId').equals(existingJournal.id).first();
-    if (existingSale) return existingSale;
-  }
-
-  const sale = {
-    id: createId('SALE'),
-    saleNumber: saleData.saleNumber,
-    transactionDate: saleData.transactionDate,
-    customerId: saleData.customerId,
-    items: saleData.items,
-    totalAmount: saleData.totalAmount,
-    paidAmount,
-    paymentMethod: saleData.paymentMethod,
-    status: paidAmount >= saleData.totalAmount ? 'COMPLETED' : 'UNPAID',
-    dueDate: saleData.dueDate,
-    createdAt: new Date().toISOString(),
-  };
-
-  const journalEntries = [
-    { accountCode: '4000', debit: 0, credit: sale.totalAmount }, // Revenue
-  ];
-
-  if (sale.paidAmount > 0) {
-    journalEntries.push({ accountCode: '1010', debit: sale.paidAmount, credit: 0 }); // Kas
-  }
-  if (sale.totalAmount > sale.paidAmount) {
-    journalEntries.push({ accountCode: '1100', debit: sale.totalAmount - sale.paidAmount, credit: 0 }); // Piutang
-  }
 
   return await db.transaction('rw', db.journals, db.auditTrail, db.sales, db.products, db.inventoryMovements, async () => {
+    // Idempotency check INSIDE the transaction to prevent race condition.
+    // Only one request can create the sale; concurrent requests with the same key
+    // will find the existing journal and return the existing sale.
+    const existingJournal = await db.journals.where('idempotencyKey').equals(idempotencyKey).first();
+    if (existingJournal && existingJournal.status === 'POSTED') {
+      const existingSale = await db.sales.where('journalId').equals(existingJournal.id).first();
+      if (existingSale) return existingSale;
+    }
+
+    // Validation inside transaction
+    if (!Array.isArray(saleData.items) || saleData.items.length === 0) throw new Error('Penjualan harus memiliki barang.');
+
+    // Create sale object
+    const sale = {
+      id: createId('SALE'),
+      saleNumber: saleData.saleNumber,
+      transactionDate: saleData.transactionDate,
+      customerId: saleData.customerId,
+      items: saleData.items,
+      totalAmount: saleData.totalAmount,
+      paidAmount,
+      paymentMethod: saleData.paymentMethod,
+      status: paidAmount >= saleData.totalAmount ? 'COMPLETED' : 'UNPAID',
+      dueDate: saleData.dueDate,
+      createdAt: new Date().toISOString(),
+    };
+
+    const journalEntries = [
+      { accountCode: '4000', debit: 0, credit: sale.totalAmount }, // Revenue
+    ];
+
+    if (sale.paidAmount > 0) {
+      journalEntries.push({ accountCode: '1010', debit: sale.paidAmount, credit: 0 }); // Kas
+    }
+    if (sale.totalAmount > sale.paidAmount) {
+      journalEntries.push({ accountCode: '1100', debit: sale.totalAmount - sale.paidAmount, credit: 0 }); // Piutang
+    }
+
     const costOfGoodsSold = await reserveSaleStock(sale.items, sale.id, sale.transactionDate);
     const journal = await createJournal({
       journalNumber: `JE-${sale.saleNumber}`,
