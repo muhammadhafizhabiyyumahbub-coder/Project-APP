@@ -39,7 +39,8 @@ function validateBackup(backup) {
     auditTrail: ['id', 'entityId', 'action', 'reference'],
     sales: ['id', 'saleNumber', 'customerId', 'journalId', 'transactionDate'],
     payments: ['id', 'paymentNumber', 'saleId', 'journalId'],
-    inventoryMovements: ['id', 'productId', 'saleId', 'transactionDate'],
+    // inventoryMovements: saleId wajib hanya untuk STOCK_OUT, tidak untuk STOCK_IN
+    inventoryMovements: ['id', 'productId', 'transactionDate'],
     suppliers: ['id', 'nama'],
     employees: ['id', 'nama'],
   };
@@ -51,6 +52,29 @@ function validateBackup(backup) {
         for (const field of fields) {
           if (row[field] === undefined || row[field] === null) {
             throw new Error(`Data baris pada tabel ${tableName} tidak valid: field wajib '${field}' hilang.`);
+          }
+        }
+        // Validate numeric types after all required fields checked
+        if (tableName === 'products') {
+          if (!Number.isInteger(row.stok)) {
+            throw new Error(`Data baris pada tabel products tidak valid: field 'stok' harus berupa bilangan integer.`);
+          }
+          if (!Number.isInteger(row.hpp)) {
+            throw new Error(`Data baris pada tabel products tidak valid: field 'hpp' harus berupa bilangan integer.`);
+          }
+        }
+        if (tableName === 'inventoryMovements') {
+          if (!Number.isInteger(row.quantity)) {
+            throw new Error(`Data baris pada tabel inventoryMovements tidak valid: field 'quantity' harus berupa bilangan integer.`);
+          }
+        }
+      }
+      // Post-validation: inventoryMovements - saleId required only for STOCK_OUT type
+      if (tableName === 'inventoryMovements') {
+        for (const row of rows) {
+          const type = row.type;
+          if (type === 'STOCK_OUT' && (row.saleId === undefined || row.saleId === null)) {
+            throw new Error(`Data baris pada tabel inventoryMovements tidak valid: field wajib 'saleId' hilang untuk jenis STOCK_OUT.`);
           }
         }
       }

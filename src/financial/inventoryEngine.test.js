@@ -91,4 +91,70 @@ describe('Inventory engine', () => {
     expect(product1.stok).toBe(5);
     expect(product2.stok).toBe(11);
   });
+
+  it('rejects duplicate product lines when stock is insufficient', async () => {
+    // Product P001 with stok 4, two lines qty 3 each = total 6 > 4
+    await saveProduct({ id: 'P001', nama: 'Beras', stok: 4, hpp: 60000 });
+    
+    await expect(
+      reserveSaleStock(
+        [
+          { productId: 'P001', quantity: 3, unitPrice: 50000, total: 150000 },
+          { productId: 'P001', quantity: 3, unitPrice: 50000, total: 150000 }
+        ],
+        'SALE-INSUFF-001',
+        '2026-11-10'
+      )
+    ).rejects.toThrow('tidak mencukupi');
+    
+    // Stock must remain unchanged after failed transaction
+    const product = await db.products.get('P001');
+    expect(product.stok).toBe(4);
+  });
+
+  it('handles same product in three lines - total quantity deducted correctly', async () => {
+    // Product P001 with stok 20
+    await saveProduct({ id: 'P001', nama: 'Beras', stok: 20, hpp: 60000 });
+    
+    // Three line items for same product: qty 3 + qty 5 + qty 4 = 12 total
+    // Expected stok: 20 - 12 = 8
+    await reserveSaleStock(
+      [
+        { productId: 'P001', quantity: 3, unitPrice: 50000, total: 150000 },
+        { productId: 'P001', quantity: 5, unitPrice: 50000, total: 250000 },
+        { productId: 'P001', quantity: 4, unitPrice: 50000, total: 200000 }
+      ],
+      'SALE-DUP-003',
+      '2026-11-10'
+    );
+    
+    const product = await db.products.get('P001');
+    // Expected: stok = 20 - 12 = 8
+    expect(product.stok).toBe(8);
+  });
+
+  it('handles mixed products with one having duplicate lines and another insufficient', async () => {
+    // Product P001 with stok 10, Product P002 with stok 3
+    await saveProduct({ id: 'P001', nama: 'Beras', stok: 10, hpp: 60000 });
+    await saveProduct({ id: 'P002', nama: 'Gula', stok: 3, hpp: 40000 });
+    
+    // P001 appears twice (qty 2 + qty 3 = 5), P002 qty 4 (insufficient)
+    await expect(
+      reserveSaleStock(
+        [
+          { productId: 'P001', quantity: 2, unitPrice: 50000, total: 100000 },
+          { productId: 'P001', quantity: 3, unitPrice: 50000, total: 150000 },
+          { productId: 'P002', quantity: 4, unitPrice: 45000, total: 180000 }
+        ],
+        'SALE-MIX-FAIL',
+        '2026-11-10'
+      )
+    ).rejects.toThrow('tidak mencukupi');
+    
+    // Both products must remain unchanged after failed transaction
+    const product1 = await db.products.get('P001');
+    const product2 = await db.products.get('P002');
+    expect(product1.stok).toBe(10);
+    expect(product2.stok).toBe(3);
+  });
 });

@@ -47,13 +47,20 @@ export async function reserveSaleStock(items, saleId, transactionDate) {
     const existingQty = productQuantities.get(item.productId) || 0;
     productQuantities.set(item.productId, existingQty + item.quantity);
     
-    if ((product.stok || 0) < item.quantity) throw new Error(`Stok produk ${item.productId} tidak mencukupi.`);
     totalCost += item.quantity * (product.hpp || 0);
+  }
+
+  // Validate total aggregated quantity against product stok before transaction.
+  for (const [productId, totalQuantity] of productQuantities) {
+    const product = await getProduct(productId);
+    if ((product.stok || 0) < totalQuantity) throw new Error(`Stok produk ${productId} tidak mencukupi.`);
   }
 
   await db.transaction('rw', db.products, db.inventoryMovements, async () => {
     for (const [productId, totalQuantity] of productQuantities) {
       const product = await getProduct(productId);
+      // Re-validate stok inside transaction for concurrency safety.
+      if ((product.stok || 0) < totalQuantity) throw new Error(`Stok produk ${productId} tidak mencukupi.`);
       product.stok -= totalQuantity;
       await db.products.put(product);
       await db.inventoryMovements.put({
