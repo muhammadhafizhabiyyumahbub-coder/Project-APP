@@ -169,4 +169,20 @@ describe('backup repository', () => {
     const journalsCount = await db.journals.count();
     expect(journalsCount).toBe(journalLinesBefore);
   });
+
+  it('S-1: rejects backup with invalid row shapes (missing required fields)', async () => {
+    await saveProduct({ id: 'P-VALID', nama: 'Produk Valid', stok: 10, hpp: 5000 });
+    const backup = await exportBackup();
+
+    // Row has a valid primary key (id) but is missing the required 'nama' field.
+    // Dexie would store this row without complaint, so only row-level validation catches it.
+    backup.tables.products.push({ id: 'P-CORRUPT', stok: 5, hpp: 1000 });
+
+    await expect(importBackup(backup)).rejects.toThrow('Data baris pada tabel products tidak valid');
+
+    // Original data must remain intact (atomic rollback).
+    const p = await db.products.get('P-VALID');
+    expect(p.nama).toBe('Produk Valid');
+    expect(await db.products.get('P-CORRUPT')).toBeUndefined();
+  });
 });

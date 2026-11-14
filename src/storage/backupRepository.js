@@ -27,6 +27,35 @@ function validateBackup(backup) {
   for (const table of db.tables) {
     if (!Array.isArray(backup.tables[table.name])) throw new Error(`Data tabel ${table.name} tidak valid.`);
   }
+  
+  // S-1: Row-level validation - check required fields per table
+  const requiredFields = {
+    businesses: ['id'],
+    products: ['id', 'nama', 'stok', 'hpp'],
+    customers: ['id', 'nama'],
+    settings: ['id', 'key'],
+    features: ['featureId'],
+    journals: ['id', 'status', 'idempotencyKey', 'reference'],
+    auditTrail: ['id', 'entityId', 'action', 'reference'],
+    sales: ['id', 'saleNumber', 'customerId', 'journalId', 'transactionDate'],
+    payments: ['id', 'paymentNumber', 'saleId', 'journalId'],
+    inventoryMovements: ['id', 'productId', 'saleId', 'transactionDate'],
+    suppliers: ['id', 'nama'],
+    employees: ['id', 'nama'],
+  };
+  
+  for (const [tableName, fields] of Object.entries(requiredFields)) {
+    const rows = backup.tables[tableName];
+    if (rows) {
+      for (const row of rows) {
+        for (const field of fields) {
+          if (row[field] === undefined || row[field] === null) {
+            throw new Error(`Data baris pada tabel ${tableName} tidak valid: field wajib '${field}' hilang.`);
+          }
+        }
+      }
+    }
+  }
 }
 
 export async function importBackup(backup) {

@@ -21,7 +21,7 @@
 
 | Code | Level | Finding | Mitigation |
 |---|---|---|---|
-| S-1 | Medium | Backup import does not validate row content; corrupted backup can import rows with missing/ unexpected fields | Documented for V1; per-row validation deferred to future hardening pass |
+| S-1 | Medium | Backup import does not validate row content; corrupted backup can import rows with missing/ unexpected fields | **Implemented row-level validation** (per-field required checks per table); V1 now validates backup row shapes before import; previously deferred, now hardened in V1 as S-1 mitigation. See `src/storage/backupRepository.js` validateBackup function + `src/storage/backupRepository.test.js` S-1 test. |
 | S-2 | Medium | Data at rest is not encrypted (IndexedDB plain text); anyone with OS account/browser profile access can read data | Documented limitation for owners; rely on OS account protection |
 | S-3 | Low | Multi-tab lock is advisory (localStorage token); malicious/client can write directly through IndexedDB, bypassing lock | Advisory only; single-user local app threat model |
 | S-4 | Low | No Content Security Policy (CSP) set on index.html | Low risk currently (no remote scripts, no eval, no inline handlers); static-host CSP would add defense in depth |
@@ -39,11 +39,11 @@
 ## Known Limitations (V1)
 
 - No authentication / multi-user isolation; single-user local-first only
-- IndexedDB data stored in plain text (see S-2)
-- Multi-tab write conflict resolved via advisory lock only (see S-3)
-- Backup import validates format/tables but not row shapes (see S-1)
+- IndexedDB data stored in plain text (see S-2) - Documented V1 limitation; encryption at rest out of V1 scope
+- Multi-tab write conflict resolved via advisory lock only (see S-3) - Advisory lock acceptable for single-user local-first model
+- Backup import validates format/tables **and row shapes** (S-1 now has per-field validation); previously only format/tables validation
 - Custom transaction categories deferred (see ISSUE-011)
-- No Content Security Policy (see S-4)
+- No Content Security Policy (CSP) set on index.html (see S-4) - Low risk (no remote scripts, no eval, no inline handlers); static-host CSP would add defense in depth
 - Offline verified via server shutdown, not CDP Network.emulateNetworkConditions
 
 ## Resolution Path
