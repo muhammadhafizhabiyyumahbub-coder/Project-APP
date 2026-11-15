@@ -5,6 +5,7 @@ import ErrorBoundary, { DatabaseErrorScreen } from './ErrorBoundary';
 import { initializeDatabase } from './storage/database';
 import { formatDatabaseError } from './storage/databaseErrors';
 import { getStorageEstimate } from './storage/storageQuota';
+import { Capacitor } from '@capacitor/core';
 import './styles.css';
 
 export { ErrorBoundary };
@@ -33,7 +34,7 @@ getStorageEstimate()
   })
   .catch(() => {});
 
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+if (import.meta.env.PROD && 'serviceWorker' in navigator && !Capacitor.isNativePlatform()) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(err => {
       console.error('Service worker registration failed:', err);

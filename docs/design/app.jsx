@@ -13,6 +13,9 @@ import { CustomerOrdersScreen } from './CustomerOrdersScreen.jsx';
 import { listProductCategories, matchesProduct } from '../../src/storage/productSearch.js';
 import { listInvoices } from '../../src/storage/invoiceRepository.js';
 import { recordPayment } from '../../src/financial/transactionEngine.js';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { filterPostedJournals, sumAccountBalance } from '../../src/financial/dashboardAggregation.js';
 import { toLocalDateKey } from '../../src/financial/dateKey.js';
 import { listSuppliers, saveSupplier, deleteSupplier } from '../../src/storage/supplierRepository.js';
@@ -1111,14 +1114,25 @@ const SettingsScreen = () => {
     finally { event.target.value = ''; }
   };
   const backup = async () => {
-    const content = JSON.stringify(await exportBackup(), null, 2);
-    const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `umkm-manager-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    setMessage('Backup diunduh.');
+    setError(null);
+    try {
+      const content = JSON.stringify(await exportBackup(), null, 2);
+      const fileName = `umkm-manager-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+      // Blob download is not reliable in the Android WebView; write and share the file instead.
+      if (Capacitor.isNativePlatform()) {
+        const { uri } = await Filesystem.writeFile({ path: fileName, data: content, directory: Directory.Cache, encoding: Encoding.UTF8 });
+        await Share.share({ title: 'Backup UMKM Manager', url: uri });
+        setMessage('Backup siap disimpan atau dibagikan.');
+        return;
+      }
+      const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+      setMessage('Backup diunduh.');
+    } catch (err) { setError(err.message || 'Backup gagal.'); }
   };
   return <div className="space-y-6"><div><h1 className="text-2xl font-semibold">Backup & Restore</h1><p className="mt-1 text-sm text-slate-500">Simpan salinan data lokal sebelum pindah perangkat atau browser.</p></div>{message && <div role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{message}</div>}{error && <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}<Card className="space-y-4"><div><h2 className="font-semibold">Backup data</h2><p className="mt-1 text-sm text-slate-500">Unduh seluruh data aplikasi dalam file JSON.</p></div><Button onClick={backup}>Unduh backup</Button></Card><Card className="space-y-4"><div><h2 className="font-semibold">Restore data</h2><p className="mt-1 text-sm text-slate-500">File valid akan mengganti seluruh data aplikasi saat ini.</p></div><input aria-label="Pilih file backup" type="file" accept="application/json,.json" onChange={restore} /></Card></div>;
 };
