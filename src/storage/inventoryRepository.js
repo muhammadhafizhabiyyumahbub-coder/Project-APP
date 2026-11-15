@@ -20,13 +20,15 @@ export async function getInventoryMovement(id) {
 
 export async function recordStockAdjustment({ productId, quantity, reason, transactionDate }) {
   await initializeDatabase();
-  const product = await db.products.get(productId);
-  if (!product) throw new Error(`Produk ${productId} tidak ditemukan.`);
-  
-  const newStock = (product.stok || 0) + quantity;
-  if (newStock < 0) throw new Error('Stok tidak boleh negatif setelah penyesuaian.');
 
-  await db.transaction('rw', db.products, db.inventoryMovements, async () => {
+  // Read and recompute inside the transaction so concurrent adjustments cannot overwrite each other.
+  return await db.transaction('rw', db.products, db.inventoryMovements, async () => {
+    const product = await db.products.get(productId);
+    if (!product) throw new Error(`Produk ${productId} tidak ditemukan.`);
+
+    const newStock = (product.stok || 0) + quantity;
+    if (newStock < 0) throw new Error('Stok tidak boleh negatif setelah penyesuaian.');
+
     product.stok = newStock;
     await db.products.put(product);
     await db.inventoryMovements.put({
@@ -39,6 +41,6 @@ export async function recordStockAdjustment({ productId, quantity, reason, trans
       reason: reason || 'Penyesuaian stok',
       createdAt: new Date().toISOString(),
     });
+    return product;
   });
-  return product;
 }

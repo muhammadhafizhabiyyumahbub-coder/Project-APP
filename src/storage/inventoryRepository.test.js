@@ -49,6 +49,18 @@ describe('inventory repository', () => {
     })).rejects.toThrow('Stok tidak boleh negatif');
   });
 
+  it('applies concurrent adjustments without overwriting each other', async () => {
+    await saveProduct({ id: 'P1', nama: 'Item', stok: 10 });
+
+    await Promise.all([
+      recordStockAdjustment({ productId: 'P1', quantity: 5, transactionDate: '2026-11-11' }),
+      recordStockAdjustment({ productId: 'P1', quantity: -3, transactionDate: '2026-11-11' }),
+    ]);
+
+    expect((await db.products.get('P1')).stok).toBe(12); // 10 + 5 - 3
+    expect(await db.inventoryMovements.count()).toBe(2);
+  });
+
   it('lists inventory movements with filter and limit', async () => {
     await saveProduct({ id: 'P1', nama: 'Item 1' });
     await saveProduct({ id: 'P2', nama: 'Item 2' });

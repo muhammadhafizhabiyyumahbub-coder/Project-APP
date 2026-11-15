@@ -1003,3 +1003,26 @@ Jika hasil test bergantung pada aturan yang belum disetujui, tandai `BLOCKED –
 ## 21. Pelaporan
 
 Setiap test report harus memuat versi aplikasi, versi skema, environment, jumlah passed/failed/skipped/blocked, bukti, dan kesimpulan. Dilarang mengklaim test lulus tanpa eksekusi dan bukti.
+
+## 22. Data Integrity & Concurrency Regression (2026-11-15)
+
+Kasus wajib untuk integritas stok, HPP, dan backup:
+
+| ID | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| INT-01 | Stok 4, dua baris produk sama kuantitas 3 + 3 | Transaksi ditolak; stok tetap 4; tidak ada movement |
+| INT-02 | Stok 6, dua baris produk sama kuantitas 3 + 3 | Transaksi berhasil; stok menjadi 0 |
+| INT-03 | Beberapa produk dengan duplicate lines | Kuantitas diagregasi per produk; stok akhir benar |
+| INT-04 | Quantity 0, negatif, atau pecahan | Ditolak; stok tidak berubah |
+| INT-05 | Produk tidak ditemukan | Transaksi ditolak atomik; tidak ada movement |
+| INT-06 | Dua penjualan bersamaan, stok hanya cukup satu | Hanya satu berhasil; stok tidak negatif; movement hanya dari transaksi sukses |
+| INT-07 | Dua STOCK_IN bersamaan untuk produk sama | Total stok = seluruh kuantitas; HPP = weighted average; tidak ada movement hilang |
+| INT-08 | Dua penyesuaian stok bersamaan | Tidak saling menimpa; stok akhir benar |
+| INT-09 | Backup dengan STOCK_IN tanpa `saleId` | Diekspor dan direstore; stok utuh |
+| INT-10 | Backup dengan STOCK_OUT valid | Direstore; konsisten |
+| INT-11 | STOCK_OUT tanpa `saleId` | Ditolak; data lama utuh |
+| INT-12 | Nilai numerik tidak valid (`stok`, `hpp`, `quantity`, `unitCost`) | Ditolak; data lama utuh |
+| INT-13 | Jenis movement tidak dikenal | Ditolak |
+| INT-14 | Restore gagal | Tidak mengubah data sebelumnya (rollback atomik) |
+
+Semua kasus di atas dijalankan via `npx vitest run` dan wajib lulus sebelum klaim READY.

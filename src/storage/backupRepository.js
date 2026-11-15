@@ -39,12 +39,13 @@ function validateBackup(backup) {
     auditTrail: ['id', 'entityId', 'action', 'reference'],
     sales: ['id', 'saleNumber', 'customerId', 'journalId', 'transactionDate'],
     payments: ['id', 'paymentNumber', 'saleId', 'journalId'],
-    // inventoryMovements: saleId wajib hanya untuk STOCK_OUT, tidak untuk STOCK_IN
-    inventoryMovements: ['id', 'productId', 'transactionDate'],
+    // saleId is validated per movement type below: STOCK_OUT requires it, STOCK_IN/ADJUSTMENT do not.
+    inventoryMovements: ['id', 'productId', 'transactionDate', 'type'],
     suppliers: ['id', 'nama'],
     employees: ['id', 'nama'],
   };
-  
+  const movementTypes = ['STOCK_IN', 'STOCK_OUT', 'ADJUSTMENT'];
+
   for (const [tableName, fields] of Object.entries(requiredFields)) {
     const rows = backup.tables[tableName];
     if (rows) {
@@ -54,26 +55,26 @@ function validateBackup(backup) {
             throw new Error(`Data baris pada tabel ${tableName} tidak valid: field wajib '${field}' hilang.`);
           }
         }
-        // Validate numeric types after all required fields checked
+        // Validate numeric types and ranges after all required fields checked
         if (tableName === 'products') {
-          if (!Number.isInteger(row.stok)) {
-            throw new Error(`Data baris pada tabel products tidak valid: field 'stok' harus berupa bilangan integer.`);
+          if (!Number.isInteger(row.stok) || row.stok < 0) {
+            throw new Error(`Data baris pada tabel products tidak valid: field 'stok' harus berupa bilangan integer tidak negatif.`);
           }
-          if (!Number.isInteger(row.hpp)) {
-            throw new Error(`Data baris pada tabel products tidak valid: field 'hpp' harus berupa bilangan integer.`);
+          if (!Number.isInteger(row.hpp) || row.hpp < 0) {
+            throw new Error(`Data baris pada tabel products tidak valid: field 'hpp' harus berupa bilangan integer tidak negatif.`);
           }
         }
         if (tableName === 'inventoryMovements') {
+          if (!movementTypes.includes(row.type)) {
+            throw new Error(`Data baris pada tabel inventoryMovements tidak valid: jenis movement '${row.type}' tidak dikenal.`);
+          }
           if (!Number.isInteger(row.quantity)) {
             throw new Error(`Data baris pada tabel inventoryMovements tidak valid: field 'quantity' harus berupa bilangan integer.`);
           }
-        }
-      }
-      // Post-validation: inventoryMovements - saleId required only for STOCK_OUT type
-      if (tableName === 'inventoryMovements') {
-        for (const row of rows) {
-          const type = row.type;
-          if (type === 'STOCK_OUT' && (row.saleId === undefined || row.saleId === null)) {
+          if (row.unitCost !== undefined && (!Number.isInteger(row.unitCost) || row.unitCost < 0)) {
+            throw new Error(`Data baris pada tabel inventoryMovements tidak valid: field 'unitCost' harus berupa bilangan integer tidak negatif.`);
+          }
+          if (row.type === 'STOCK_OUT' && (row.saleId === undefined || row.saleId === null)) {
             throw new Error(`Data baris pada tabel inventoryMovements tidak valid: field wajib 'saleId' hilang untuk jenis STOCK_OUT.`);
           }
         }

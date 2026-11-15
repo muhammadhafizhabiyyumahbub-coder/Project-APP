@@ -1,7 +1,7 @@
 # RELEASE TEST REPORT — UMKM Manager V1
 
-**Generated:** 2026-11-14  
-**Test Command:** `cmd /c "npm test > t.txt 2>&1"; set EXIT=%ERRORLEVEL%; type t.txt | findstr /r /c:"Test Files" /c:"Tests " /c:"FAIL"; del t.txt`  
+**Generated:** 2026-11-15  
+**Test Command:** `npx vitest run`  
 **Build Command:** `npm run build`  
 **Exit Code:** 0 (all tests passed)
 
@@ -10,12 +10,24 @@
 | Metric | Result |
 |---|---|
 | Test Files | 25 passed |
-| Tests | 105 passed |
+| Tests | 131 passed |
 | Skipped | 0 |
 | Failed | 0 |
 | Build | ✓ passed |
-| Bundle JS (gzip) | ~103 KB |
+| Bundle JS (gzip) | ~104 KB |
 | Bundle CSS (gzip) | ~5.8 KB |
+
+## Data Integrity Regression (F-01..F-04, 2026-11-15)
+
+| Finding | Scenario | Result |
+|---|---|---|
+| F-01 | Duplicate product lines aggregated before validation; stock 4 with 3+3 rejected; stock 6 with 3+3 succeeds (stok 0) | Pass |
+| F-02 | STOCK_IN restores without `saleId`; STOCK_OUT without `saleId` rejected; invalid numeric fields rejected; failed restore leaves data intact | Pass |
+| F-03 | Two concurrent sales against stock for one: only one succeeds, stock never negative, no extra movement | Pass |
+| F-04 | Two concurrent STOCK_IN: total stock equals received quantity, HPP matches weighted average, no lost movement | Pass |
+| F-05 | Two concurrent stock adjustments: no lost update | Pass |
+
+All integrity and concurrency cases run under `npx vitest run` (fake-indexeddb).
 
 ## Acceptance Criteria Coverage
 
@@ -99,8 +111,8 @@
 
 ## Notes
 
-- All 106 unit/integration tests pass with `npm test` (exit 0).
-- Build passes (`npm run build`); production bundle 348 KB raw (103 KB gzip) JS, 31 KB raw (5.8 KB gzip) CSS.
+- All 131 unit/integration tests pass with `npx vitest run` (exit 0).
+- Build passes (`npm run build`); production bundle ~350 KB raw (~104 KB gzip) JS, ~31 KB raw (5.8 KB gzip) CSS.
 - Offline verification done by terminating the preview server process; reload served cached `umkm-manager-shell-v3` shell plus hashed assets; IndexedDB data intact.
-- Security review `docs/security/SECURITY_REVIEW_V1.md` completed; findings S-1 (backup row validation gap), S-2 (data at rest unencrypted), S-3 (multi-tab advisory lock), S-4 (no CSP) documented; no behavioral changes made.
+- Security review `docs/security/SECURITY_REVIEW_V1.md` completed; findings S-1 (backup row validation gap — now mitigated with row-level, movement-type, and numeric-range validation), S-2 (data at rest unencrypted), S-3 (multi-tab advisory lock), S-4 (no CSP) documented.
 - Phase 8 full scope blocked by pending business decisions DEC-005/006/008/009/010.

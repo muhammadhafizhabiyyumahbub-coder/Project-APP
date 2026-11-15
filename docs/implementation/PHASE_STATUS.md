@@ -13,9 +13,9 @@
 | Product Version | V1 draft |
 | Development Model | Offline-First, Local-First |
 | Current Phase | Phase 8, Business Operations (approved subset) |
-| Current Status | Phase 12 In Progress (documentation QA, release notes, manual QA verified); push blocked by GitHub credential |
+| Current Status | Phase 12 In Progress (documentation QA, release notes, manual QA verified; data-integrity hardening F-01..F-04 complete; 131/131 tests pass) |
 | Approved Phase | Phase 8 subset (supplier + employee CRUD) |
-| Next Action | Resolve pending business decisions (DEC-005/006/008/009/010) before Phase 8 full scope; push local commit 628e5ea |
+| Next Action | Resolve pending business decisions (DEC-005/006/008/009/010) before Phase 8 full scope; push integrity-hardening commit |
 | Release Status | Not Released |
 
 Status reflects repository evidence. Documentation is not implementation evidence.
@@ -36,7 +36,7 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 | 9 | Reports & Dashboard | Completed |
 | 10 | Backup & Restore | Completed |
 | 11 | Offline & Reliability Hardening | Completed (offline reload verified 2026-11-14; multi-tab read-only lock with takeover; quota warning UI; DB recovery screen) |
-| 12 | Final QA & V1 Release | In Progress (documentation QA, release notes, manual QA checklist; test suite + build pass) |
+| 12 | Final QA & V1 Release | In Progress (documentation QA, release notes, manual QA checklist; 131/131 tests + production build pass) |
 
 ## 3. Phase 0 Details
 
@@ -86,16 +86,16 @@ Status reflects repository evidence. Documentation is not implementation evidenc
 
 | Test Category | Result | Evidence |
 |---|---|---|
-| Unit | Pass | 93 pass (22 files) |
-| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity, payment idempotency, dashboard period filtering, local date keys, backup rollback, collision-safe IDs, supplier/employee CRUD, storage quota, duplicate product lines, sale idempotency |
+| Unit | Pass | 131 pass (25 files) |
+| Integration | Pass | Sale, payment, stock-in, HPP, negative-stock, checkout integrity, payment idempotency, dashboard period filtering, local date keys, backup rollback, collision-safe IDs, supplier/employee CRUD, storage quota, duplicate product lines, sale idempotency, concurrent sale/stock-in/adjustment serialization |
 | E2E | Pass | POS checkout, Dashboard balances, Financial screen, Product screen UI tests |
 | Build | Pass | `npm run build` passes, dist/ generated, service worker copied |
-| Regression | Pass | 109 tests |
+| Regression | Pass | 131 tests |
 | Manual application verification | Completed | Preview build loaded online and offline (server stopped); service worker served the cached app shell, IndexedDB data intact, no console errors |
 | Offline behavior | Pass | IndexedDB storage tests |
-| Data integrity | Pass | Journal balancing, rollback, atomic sale+stock, single journal per sale verified |
-| Documentation consistency | Reviewed | Phase 3 status updated |
-| Git diff check | Pending | Changes uncommitted |
+| Data integrity | Pass | Journal balancing, rollback, atomic sale+stock, single journal per sale, aggregated duplicate-line stock validation, in-transaction stock re-validation, backup movement-type validation |
+| Documentation consistency | Reviewed | Phase status, known issues, security review, test plan, release test report updated 2026-11-15 |
+| Git diff check | Reviewed | 6 source/test files changed for F-01..F-04 only |
 
 ## 5. Known Issues
 
@@ -126,18 +126,18 @@ No recommendation is treated as approved.
 | Phase | Start Date | Completion Date | Final Status |
 |---|---|---|---|
 | 0 | 2026-11-10 | 2026-11-10 | Completed |
-| 1 | — | — | Not Started |
+| 1 | 2026-11-10 | 2026-11-10 | Completed |
 | 2 | 2026-11-10 | 2026-11-10 | Completed |
 | 3 | 2026-11-10 | 2026-11-10 | Completed |
-| 4 | — | — | Not Started |
-| 5 | — | — | Not Started |
-| 6 | — | — | Not Started |
-| 7 | — | — | Not Started |
-| 8 | — | — | Not Started |
-| 9 | — | — | Not Started |
-| 10 | — | — | Not Started |
-| 11 | — | — | Not Started |
-| 12 | — | — | Not Started |
+| 4 | — | — | Completed |
+| 5 | — | — | Completed |
+| 6 | — | — | Completed |
+| 7 | — | — | Completed |
+| 8 | — | — | In Progress (approved subset: supplier + employee CRUD only) |
+| 9 | — | — | Completed |
+| 10 | — | — | Completed |
+| 11 | 2026-11-14 | 2026-11-14 | Completed |
+| 12 | 2026-11-14 | — | In Progress |
 
 ## 8. Risks
 
@@ -219,3 +219,12 @@ Phase 3 is complete when:
 
 - Production bundle: JS ~348 KB (gzip ~103 KB), CSS ~31 KB (gzip ~5.8 KB).
 - Preview load performance: DOMContentLoaded ~300 ms, load ~302 ms, response end ~98 ms.
+
+## Data Integrity Hardening (2026-11-15)
+
+- F-01 duplicate product lines: `reserveSaleStock()` aggregates quantity per `productId` before validation and deduction, so duplicate lines cannot each pass against the same stock. Total aggregated quantity is validated against stock.
+- F-02 backup movement validation: `validateBackup()` validates `inventoryMovements` by `type`; `saleId` is required only for `STOCK_OUT`, and `STOCK_IN`/`ADJUSTMENT` restore without it. Known types (`STOCK_IN`, `STOCK_OUT`, `ADJUSTMENT`) and integer/non-negative ranges for `stok`, `hpp`, `quantity`, and `unitCost` are enforced.
+- F-03 concurrent sale safety: stock read, re-validation, and deduction now run inside one read-write transaction in `reserveSaleStock()`, so two concurrent sales cannot both consume the last stock.
+- F-04 concurrent stock-in safety: `recordStockIn()` reads the product, recomputes stock/HPP, and writes product plus movement inside one read-write transaction.
+- F-05 concurrent adjustment safety: `recordStockAdjustment()` reads and recomputes stock inside the transaction.
+- Verification: `npx vitest run` = 25 files, 131 tests pass; `npm run build` passes. No schema, API, costing, or financial-rule changes.

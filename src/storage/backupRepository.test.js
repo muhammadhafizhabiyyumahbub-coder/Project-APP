@@ -6,6 +6,8 @@ import { exportBackup, importBackup } from './backupRepository';
 import { saveProduct } from './productRepository';
 import { createSale, recordPayment } from '../financial/transactionEngine';
 import { getAccountBalance } from '../financial/financialEngine';
+import { recordStockIn } from '../financial/inventoryEngine';
+import { recordStockAdjustment } from './inventoryRepository';
 
 beforeEach(initializeDatabase);
 afterEach(resetDatabase);
@@ -187,28 +189,19 @@ describe('backup repository', () => {
   });
 
   it('backup with STOCK_IN without saleId succeeds', async () => {
-    // Create a stock-in movement (no saleId)
     await saveProduct({ id: 'P001', nama: 'Beras', stok: 10, hpp: 60000 });
-    const sale = await createSale({
-      saleNumber: 'INV-STOCK-IN', transactionDate: '2026-11-10', customerId: 'C001',
-      items: [{ productId: 'P001', quantity: 2, unitPrice: 50000, total: 100000 }],
-      totalAmount: 100000, paymentMethod: 'CASH', paidAmount: 0,
-    });
+    await recordStockIn({ productId: 'P001', quantity: 5, unitCost: 60000, transactionDate: '2026-11-10' });
 
     const backup = await exportBackup();
-
-    // Remove saleId from inventoryMovements STOCK_IN rows to simulate old backup
-    for (const row of backup.tables.inventoryMovements) {
-      if (row.type === 'STOCK_IN') {
-        row.saleId = undefined;
-      }
-    }
+    expect(backup.tables.inventoryMovements).toHaveLength(1);
+    expect(backup.tables.inventoryMovements[0].type).toBe('STOCK_IN');
+    expect(backup.tables.inventoryMovements[0].saleId).toBeUndefined();
 
     await expect(importBackup(backup)).resolves.toBeUndefined();
 
-    // Stock must be preserved
     const product = await db.products.get('P001');
-    expect(product.stok).toBe(8); // 10 - 2 = 8
+    expect(product.stok).toBe(15); // 10 + 5
+    expect(await db.inventoryMovements.count()).toBe(1);
   });
 
   it('backup with STOCK_OUT and saleId valid succeeds', async () => {
@@ -321,6 +314,100 @@ describe('backup repository', () => {
     expect(product.stok).toBe(3); // 5 - 2 = 3
 
     // Verify balances (revenue 100000, HPP 120000, piutang 100000, kas 0 since no payment)
+    const balances = await Promise.all(['1010', '1100', '4000', '5100'].map(code => getAccountBalance(code)));
+    expect(balances).toEqual([0, 100000, 100000, 120000]);
+  });
+
+  it('backup with unknown movement type is rejected', async () => {
+    await saveProduct({ id: 'P001', nama: 'Beras', stok: 10, hpp: 60000 });
+    const backup = await exportBackup();
+
+    backup.tables.inventoryMovements.push({
+      id: 'UNK-001', productId: 'P001', saleId: 'S-1', transactionDate: '2026-11-10',
+      quantity: 5, unitCost: 1000, type: 'STOCK_ADJUSTMENT'
+    });
+
+    await expect(importBackup(backup)).rejects.toBeTruthy();
+    const product = await db.products.get('P001');
+    expect(product.stok).toBe(10);
+  });
+
+  it('backup with ADJUSTMENT type succeeds', async () => {
+    await saveProduct({ id: 'P001', nama: 'Beras', stok: 10, hpp: 60000 });
+    await recordStockAdjustment({ productId: 'P001', quantity: -2, reason: 'Rusak', transactionDate: '2026-11-10' });
+
+    const backup = await exportBackup();
+    expect(backup.tables.inventoryMovements).toHaveLength(1);
+    expect(backup.tables.inventoryMovements[0].type).toBe('ADJUSTMENT');
+    expect(backup.tables.inventoryMovements[0].saleId).toBeUndefined();
+
+    await expect(importBackup(backup)).resolves.toBeUndefined();
+    const product = await db.products.get('P001');
+    expect(product.stok).toBe(8); // 10 - 2
+    expect(await db.inventoryMovements.count()).toBe(1);
+  });
+
+  it('backup with negative stok is rejected', async () => {
+    await saveProduct({ id: 'P001', nama: 'Beras', stok: 10, hpp: 60000 });
+    const backup = await exportBackup();
+
+    backup.tables.products.push({ id: 'P-NEG', nama: 'Beras', stok: -5, hpp: 1000 });
+
+    await expect(importBackup(backup)).rejects.toBeTruthy();
+    const product = await db.products.get('P001');
+    expect(product.nama).toBe('Beras');
+    expect(product.stok).toBe(10);
+  });
+
+  it('backup with negative hpp is rejected', async () => {
+    await saveProduct({ id: 'P001', nama: 'Beras', stok: 10, hpp: 60000 });
+    const backup = await exportBackup();
+
+    backup.tables.products.push({ id: 'P-NEGH', nama: 'Beras', stok: 10, hpp: -100 });
+
+    await expect(importBackup(backup)).rejects.toBeTruthy();
+    const product = await db.products.get('P001');
+    expect(product.nama).toBe('Beras');
+  });
+
+  it('backup with unitCost as string is rejected', async () => {
+    await saveProduct({ id: 'P001', nama: 'Beras', stok: 10, hpp: 60000 });
+    await createSale({
+      saleNumber: 'INV-UNITCOST', transactionDate: '2026-11-10', customerId: 'C001',
+      items: [{ productId: 'P001', quantity: 2, unitPrice: 50000, total: 100000 }],
+      totalAmount: 100000, paymentMethod: 'CASH', paidAmount: 0,
+    });
+    const backup = await exportBackup();
+
+    const row = backup.tables.inventoryMovements.find(r => r.type === 'STOCK_OUT');
+    expect(row).toBeDefined();
+    row.unitCost = 'invalid';
+
+    await expect(importBackup(backup)).rejects.toBeTruthy();
+    const product = await db.products.get('P001');
+    expect(product.stok).toBe(8);
+  });
+
+  it('export-import round trip maintains movements and financial consistency after stock-in', async () => {
+    await saveProduct({ id: 'P001', nama: 'Beras', stok: 5, hpp: 60000 });
+    const sale = await createSale({
+      saleNumber: 'INV-RT-MOVE', transactionDate: '2026-11-10', customerId: 'C001',
+      items: [{ productId: 'P001', quantity: 2, unitPrice: 50000, total: 100000 }],
+      totalAmount: 100000, paymentMethod: 'CREDIT', paidAmount: 0,
+    });
+
+    const backup = await exportBackup();
+
+    await importBackup(backup);
+
+    const product = await db.products.get('P001');
+    expect(product.stok).toBe(3); // 5 - 2
+
+    const movements = await db.inventoryMovements.toArray();
+    expect(movements.length).toBe(1);
+    expect(movements[0].type).toBe('STOCK_OUT');
+
+    // Verify balances (revenue 100000, HPP 120000, piutang 100000, kas 0)
     const balances = await Promise.all(['1010', '1100', '4000', '5100'].map(code => getAccountBalance(code)));
     expect(balances).toEqual([0, 100000, 100000, 120000]);
   });
